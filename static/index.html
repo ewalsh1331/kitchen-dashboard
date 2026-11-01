@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kitchen Dashboard</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #181b22; --text: #f2f3f5; --muted: #8b919c;
+    --ok: #4cc38a; --bad: #f2555a; --accent: #f5c84c;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font-family: "Inter", "Segoe UI", Roboto, Arial, sans-serif; cursor: none; overflow: hidden; }
+  body { display: grid; grid-template-columns: 1fr 1.3fr; gap: 4vw; padding: 5vh 5vw; transition: opacity 2s; }
+  body.night { opacity: 0.35; }
+  .left { display: flex; flex-direction: column; justify-content: center; }
+  #time { font-size: 15vw; font-weight: 300; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  #date { font-size: 3.4vw; color: var(--muted); margin-top: 1.5vh; }
+  #status { margin-top: 6vh; font-size: 2vw; display: flex; align-items: center; gap: 0.8vw; }
+  #dot { width: 1.4vw; height: 1.4vw; border-radius: 50%; background: var(--muted); }
+  #status.ok #dot { background: var(--ok); }
+  #status.bad #dot { background: var(--bad); }
+  #updated { font-size: 1.3vw; color: var(--muted); margin-top: 1vh; }
+  .right { display: flex; flex-direction: column; justify-content: center; gap: 2.2vh; }
+  h2 { font-size: 1.8vw; font-weight: 600; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.12em; margin: 0 0 1vh; }
+  .event { background: var(--panel); border-left: 0.5vw solid var(--accent); border-radius: 1vw; padding: 2.4vh 2vw; }
+  .event .when { font-size: 2vw; color: var(--accent); font-weight: 600; }
+  .event .title { font-size: 3vw; margin-top: 0.6vh; }
+  .event .where { font-size: 1.6vw; color: var(--muted); margin-top: 0.4vh; }
+  .empty { font-size: 2.4vw; color: var(--muted); }
+  .error { font-size: 1.8vw; color: var(--bad); white-space: pre-wrap; }
+</style>
+</head>
+<body>
+  <section class="left">
+    <div id="time">--:--</div>
+    <div id="date"></div>
+    <div id="status"><span id="dot"></span><span id="status-text">Connecting…</span></div>
+    <div id="updated"></div>
+  </section>
+  <section class="right">
+    <h2 id="cal-name">Up next</h2>
+    <div id="events"></div>
+  </section>
+
+<script>
+const TZ = "America/Chicago";
+const NIGHT_START = 23, NIGHT_END = 6;   // dim between 11 PM and 6 AM
+const POLL_MS = 60 * 1000;
+
+const fmtTime = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: TZ });
+const fmtDate = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: TZ });
+const fmtDay  = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: TZ });
+const hourNow = () => Number(new Intl.DateTimeFormat("en-US", { hour: "numeric", hourCycle: "h23", timeZone: TZ }).format(new Date()));
+
+function tick() {
+  const now = new Date();
+  document.getElementById("time").textContent = fmtTime.format(now).replace(/\s?[AP]M$/, "");
+  document.getElementById("date").textContent = fmtDate.format(now);
+  const h = hourNow();
+  document.body.classList.toggle("night", h >= NIGHT_START || h < NIGHT_END);
+}
+
+function dayLabel(d) {
+  const key = x => new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(x);
+  const today = new Date(), tomorrow = new Date(Date.now() + 864e5);
+  if (key(d) === key(today)) return "Today";
+  if (key(d) === key(tomorrow)) return "Tomorrow";
+  return fmtDay.format(d);
+}
+
+function whenText(ev) {
+  if (ev.all_day) {
+    const [y, m, d] = ev.start.split("-").map(Number);
+    return dayLabel(new Date(Date.UTC(y, m - 1, d, 12))) + " · All day";
+  }
+  const d = new Date(ev.start);
+  return dayLabel(d) + " · " + fmtTime.format(d);
+}
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  e.className = cls; e.textContent = text;
+  return e;
+}
+
+function setStatus(ok, text) {
+  const s = document.getElementById("status");
+  s.className = ok ? "ok" : "bad";
+  document.getElementById("status-text").textContent = text;
+}
+
+async function refresh() {
+  const box = document.getElementById("events");
+  try {
+    const res = await fetch("/api/status", { cache: "no-store" });
+    const data = await res.json();
+    box.replaceChildren();
+    if (!data.ok) {
+      setStatus(false, "Google connection problem");
+      box.append(el("div", "error", data.error || "Unknown error"));
+    } else {
+      setStatus(true, "Connected ✓");
+      document.getElementById("cal-name").textContent = "Up next · " + data.calendar;
+      if (!data.events.length) box.append(el("div", "empty", "Nothing scheduled"));
+      for (const ev of data.events) {
+        const card = el("div", "event", "");
+        card.append(el("div", "when", whenText(ev)), el("div", "title", ev.title));
+        if (ev.location) card.append(el("div", "where", ev.location));
+        box.append(card);
+      }
+    }
+    if (data.fetched_at) document.getElementById("updated").textContent =
+      "Updated " + fmtTime.format(new Date(data.fetched_at));
+  } catch (e) {
+    setStatus(false, "Dashboard service not responding");
+  }
+}
+
+tick(); refresh();
+setInterval(tick, 1000);
+setInterval(refresh, POLL_MS);
+// Full reload every 6 hours picks up code changes without touching the Pi.
+setTimeout(() => location.reload(), 6 * 3600 * 1000);
+</script>
+</body>
+</html>
