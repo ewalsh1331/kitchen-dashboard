@@ -20,5 +20,6 @@
       "seconds": 30
     }
   ],
-  "workout_log_remote": "onedrive:Documents/Claude/Fitness_Program_Log.xlsx"
+  "workout_log_remote": "onedrive:Documents/Claude/Fitness_Program_Log.xlsx",
+  "ntfy_topic": "kitchen-pi-c6a413e636684778"
 }
