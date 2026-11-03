@@ -8,6 +8,7 @@ Examples (run from ~/kitchen-dashboard):
   .venv/bin/python tools/workout.py pull                    # download fresh copy + summary
   .venv/bin/python tools/workout.py show "Workout Log" --last 15
   .venv/bin/python tools/workout.py show "Workout Templates" --find "Pull"
+  .venv/bin/python tools/workout.py day "Pull #1"           # template + last logged session
   .venv/bin/python tools/workout.py push                    # upload edits (guarded)
 """
 import argparse
@@ -106,6 +107,69 @@ def cmd_show(a):
     print(json.dumps(data, indent=2, default=str))
 
 
+def _clean(v):
+    return v.isoformat()[:10] if hasattr(v, "isoformat") else v
+
+
+def _table(ws):
+    """Header + non-empty body rows of a log-style tab, as (row_number, dict)."""
+    rows = list(ws.iter_rows(values_only=True))
+    hi = next((i for i, r in enumerate(rows) if sum(c is not None for c in r) >= 2), 0)
+    header = [str(h) if h is not None else f"col{i+1}" for i, h in enumerate(rows[hi])]
+    return [(hi + 2 + n, {h: _clean(c) for h, c in zip(header, r) if c is not None})
+            for n, r in enumerate(rows[hi + 1:]) if any(c is not None for c in r)]
+
+
+def cmd_day(a):
+    """One program day: template exercises (with subs) + the most recent logged session of that day."""
+    from openpyxl import load_workbook
+    if not LOCAL.exists():
+        sys.exit("Run 'pull' first.")
+    wb = load_workbook(LOCAL, read_only=True, data_only=True)
+    want = a.name.lower()
+
+    # Templates: "BLOCK n: ..." rows, then a day-title row (only column A filled),
+    # then an "Exercise" header row, then exercise rows.
+    block, day, header, days = None, None, None, {}
+    for r in wb["Workout Templates"].iter_rows(values_only=True):
+        first = r[0] if r else None
+        if first is None:
+            continue
+        rest_empty = all(c is None for c in r[1:])
+        if str(first).upper().startswith("BLOCK"):
+            block, day = str(first), None
+        elif rest_empty:
+            day = str(first)
+        elif first == "Exercise":
+            header = [str(h) for h in r]
+        elif day and header:
+            ex = {h: _clean(c) for h, c in zip(header, r) if c is not None and h not in ("Video", "Sub 1 Video", "Sub 2 Video")}
+            days.setdefault((block, day), []).append(ex)
+
+    matches = [k for k in days if want in k[1].lower() and (a.block is None or f"BLOCK {a.block}" in k[0].upper())]
+    if not matches:
+        sys.exit(f"No template day matching '{a.name}'. Days: {sorted({k[1] for k in days})}")
+    block, day = matches[0]
+
+    # Log: group rows of this day into sessions (by Week + Date, in sheet order).
+    sessions = []
+    for n, row in _table(wb["Workout Log"]):
+        if want not in str(row.get("Day", "")).lower() or "Exercise" not in row:
+            continue
+        key = (row.get("Week"), row.get("Date"))
+        if not sessions or sessions[-1]["key"] != key:
+            sessions.append({"key": key, "rows": []})
+        sessions[-1]["rows"].append({"_row": n, **{k: v for k, v in row.items() if k not in ("Week", "Day", "Date", "Video")}})
+
+    last = sessions[-1] if sessions else None
+    print(json.dumps({
+        "block": block, "day": day,
+        "exercises": days[(block, day)],
+        "sessions_logged": [{"week": s["key"][0], "date": s["key"][1], "exercises": len(s["rows"])} for s in sessions],
+        "last_session": {"week": last["key"][0], "date": last["key"][1], "rows": last["rows"]} if last else None,
+    }, indent=2, default=str))
+
+
 def main():
     p = argparse.ArgumentParser(description="Workout log (OneDrive xlsx)")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -115,6 +179,8 @@ def main():
     s = sub.add_parser("show"); s.set_defaults(fn=cmd_show)
     s.add_argument("tab"); s.add_argument("--last", type=int, default=15)
     s.add_argument("--find"); s.add_argument("--all", action="store_true")
+    d = sub.add_parser("day", help='template + last logged session for one day, e.g. day "Pull #1"')
+    d.set_defaults(fn=cmd_day); d.add_argument("name"); d.add_argument("--block", type=int)
     a = p.parse_args()
     a.fn(a)
 
