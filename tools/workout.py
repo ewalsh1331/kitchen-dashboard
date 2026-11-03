@@ -56,7 +56,7 @@ def summary():
 
 
 def cmd_find(_):
-    out = rclone("lsf", "-R", "--files-only", "--include", "*Fitness_Program_Log*", "onedrive:")
+    out = rclone("lsf", "-R", "--files-only", "--exclude", "/Personal Vault/**", "--include", "*Fitness_Program_Log*", "onedrive:")
     print(json.dumps({"matches": [f"onedrive:{l}" for l in out.splitlines()], "configured": REMOTE}, indent=2))
 
 
