@@ -8,7 +8,10 @@
       "Bash(curl -s localhost:8080/api/status:*)",
       "Bash(git status:*)",
       "Bash(git diff:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(.venv/bin/python tools/workout.py pull:*)",
+      "Bash(.venv/bin/python tools/workout.py show:*)",
+      "Bash(.venv/bin/python tools/workout.py find:*)"
     ],
     "deny": [
       "Read(./token.json)",

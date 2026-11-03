@@ -22,6 +22,7 @@ Run every command from `~/kitchen-dashboard`. Python is `.venv/bin/python`.
 | Delete | `tools/gcal.py delete ID` |
 | Weekly Review list | `tools/gcal.py pending list` / `pending add "text"` / `pending remove "text"` |
 | Fitness Data sheet | `tools/fitness.py tabs` / `tools/fitness.py read TAB --last 14` (read-only) |
+| Workout log (OneDrive xlsx) | `tools/workout.py pull` / `show TAB [--last N] [--find TEXT]` / `push` |
 
 All tool output is JSON. Run `--help` on any tool for details.
 
@@ -56,7 +57,7 @@ When Eric starts a message with "Log:" or similar, route it without a long back-
 |---|---|
 | Dated item or follow-up | Dated task event (confirm the date first) |
 | Undated follow-up | Weekly Review pending list (no confirmation needed for pending adds) |
-| Workout done | Not on the Pi yet. Say so, and tell him to log it in Fitness_Program_Log.xlsx |
+| Workout done | Workout Log tab via `tools/workout.py` (pull → add rows → confirm → push) |
 | Golf practice note | Pending list, prefixed `Golf:` (until a golf notes tab exists) |
 
 Reply with one line confirming where it went.
@@ -73,7 +74,13 @@ Reply with one line confirming where it went.
 ## Workouts
 
 - Goal: general fitness, strength, look good. Program: Jeff Nippard Pure Bodybuilding PPL. Good apartment gym, no injuries.
-- Fitness_Program_Log.xlsx is **not on the Pi yet**. Say so rather than guessing at templates or past weights.
+- Log file: Fitness_Program_Log.xlsx in OneDrive (tabs: Workout Templates, Workout Log, plus warm-up/weak-point reference).
+- **Always `tools/workout.py pull` first** (fresh download), then read with `tools/workout.py show TAB` or openpyxl on `data/Fitness_Program_Log.xlsx`.
+- To log: edit `data/Fitness_Program_Log.xlsx` with openpyxl. Load and save the existing workbook; never rebuild it. Append rows matching the existing columns and formatting. Then `tools/workout.py push`.
+- Before pushing, show Eric the exact rows you'll add and wait for "yes".
+- If push says the file changed in OneDrive, he edited it in Excel: pull again, re-apply, push. Never force it.
+- When asked about a workout: check Workout Templates for that day's exercises, sets/reps and weights, plus what he actually did last time from Workout Log. Include Sub 1/Sub 2 options.
+- If he says he completed a workout, check whether it's already logged before adding it.
 - If a round or long practice is coming up, avoid stacking a heavy leg day right before or after.
 - If he skipped a session, ask whether to reschedule rather than dropping it.
 
