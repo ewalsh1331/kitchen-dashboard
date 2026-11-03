@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Month</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #181b22; --panel-dim: #13151b; --line: #262a33;
+    --text: #f2f3f5; --muted: #8b919c; --faint: #4a4f59;
+    --accent: #f5c84c; --bad: #f2555a;
+    --c7: #3fb8c4; --c5: #f5c84c; --c3: #a98be8; --c0: #8b919c;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font-family: "Inter", "Segoe UI", Roboto, Arial, sans-serif; cursor: none; overflow: hidden; }
+  body { display: flex; flex-direction: column; padding: 3.2vh 2.6vw 2.6vh; transition: opacity 2s; }
+  body.night { opacity: 0.35; }
+  header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 1.6vh; }
+  #title { font-size: 3.6vw; font-weight: 600; letter-spacing: -0.02em; }
+  #legend { display: flex; gap: 1.6vw; font-size: 1.15vw; color: var(--muted); }
+  #legend span::before { content: ""; display: inline-block; width: 0.8vw; height: 0.8vw;
+    border-radius: 50%; margin-right: 0.5vw; background: var(--dot); vertical-align: 0.05vw; }
+  .dow, .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.45vw; }
+  .dow div { font-size: 1.15vw; font-weight: 600; color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.12em; padding: 0 0.6vw 0.8vh; }
+  .grid { flex: 1; grid-auto-rows: 1fr; min-height: 0; }
+  .day { background: var(--panel); border-radius: 0.7vw; padding: 0.7vh 0.6vw; overflow: hidden;
+    display: flex; flex-direction: column; gap: 0.35vh; min-height: 0; border: 0.15vw solid transparent; }
+  .day.out { background: var(--panel-dim); }
+  .day.out .num { color: var(--faint); }
+  .day.past:not(.today) .ev, .day.out .ev { opacity: 0.45; }
+  .ev.appt .name { color: var(--c5); font-weight: 600; }
+  .day.today { border-color: var(--accent); }
+  .num { font-size: 1.45vw; font-weight: 600; color: var(--muted); }
+  .today .num { color: var(--bg); background: var(--accent); border-radius: 0.4vw;
+    padding: 0 0.45vw; align-self: flex-start; }
+  .ev { display: flex; align-items: baseline; gap: 0.4vw; font-size: 1.1vw; line-height: 1.25;
+    white-space: nowrap; overflow: hidden; }
+  .ev .dot { flex: none; width: 0.65vw; height: 0.65vw; border-radius: 50%; background: var(--c0);
+    align-self: center; }
+  .ev .t { color: var(--muted); flex: none; }
+  .ev .name { overflow: hidden; text-overflow: ellipsis; }
+  .ev.all { background: color-mix(in srgb, var(--col) 22%, transparent); border-radius: 0.3vw;
+    padding: 0 0.35vw; }
+  .ev.all .dot { display: none; }
+  .more { font-size: 1vw; color: var(--muted); }
+  .error { color: var(--bad); font-size: 1.8vw; margin-top: 4vh; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+  <header>
+    <div id="title">&nbsp;</div>
+    <div id="legend">
+      <span style="--dot: var(--c5)">Appointments</span>
+      <span style="--dot: var(--c3)">Tasks</span>
+      <span style="--dot: var(--c7)">Blocks</span>
+    </div>
+  </header>
+  <div class="dow"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>
+  <div class="grid" id="grid"></div>
+
+<script>
+const TZ = "America/Chicago";
+const NIGHT_START = 23, NIGHT_END = 6;
+const MAX_PER_DAY = 4;
+const COLORS = { "7": "var(--c7)", "5": "var(--c5)", "3": "var(--c3)" };
+
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+function dim() {
+  const h = Number(new Intl.DateTimeFormat("en-US", { hour: "numeric", hourCycle: "h23", timeZone: TZ }).format(new Date()));
+  document.body.classList.toggle("night", h >= NIGHT_START || h < NIGHT_END);
+}
+
+function render(data) {
+  const grid = document.getElementById("grid");
+  grid.replaceChildren();
+  if (!data.ok) {
+    document.getElementById("title").textContent = "Calendar";
+    grid.style.display = "block";
+    grid.append(el("div", "error", "Google connection problem\n" + (data.error || "")));
+    return;
+  }
+  grid.style.display = "";
+  document.getElementById("title").textContent = data.month;
+  const rows = data.weeks.length;
+  // Fewer rows → room for more events per cell.
+  const perDay = rows >= 6 ? MAX_PER_DAY - 1 : MAX_PER_DAY;
+  for (const week of data.weeks) {
+    for (const iso of week) {
+      const [y, m, d] = iso.split("-").map(Number);
+      const cell = el("div", "day");
+      if (m !== data.month_index) cell.classList.add("out");
+      if (iso === data.today) cell.classList.add("today");
+      if (iso < data.today) cell.classList.add("past");
+      cell.append(el("div", "num", String(d)));
+      // Appointments first so they never get cut off by routine blocks/tasks.
+      const evs = (data.events[iso] || []).slice().sort((a, b) => (b.color === "5") - (a.color === "5"));
+      evs.slice(0, perDay).forEach(ev => {
+        const row = el("div", "ev" + (ev.all_day ? " all" : "") + (ev.color === "5" ? " appt" : ""));
+        const col = COLORS[ev.color] || "var(--c0)";
+        row.style.setProperty("--col", col);
+        const dot = el("span", "dot"); dot.style.background = col;
+        row.append(dot);
+        if (ev.time) row.append(el("span", "t", ev.time));
+        row.append(el("span", "name", ev.title));
+        cell.append(row);
+      });
+      if (evs.length > perDay) cell.append(el("div", "more", `+${evs.length - perDay} more`));
+      grid.append(cell);
+    }
+  }
+}
+
+async function refresh() {
+  try {
+    const res = await fetch("/api/month", { cache: "no-store" });
+    render(await res.json());
+  } catch (e) {
+    render({ ok: false, error: "Dashboard service not responding" });
+  }
+}
+
+dim(); refresh();
+setInterval(dim, 60 * 1000);
+setInterval(refresh, 2 * 60 * 1000);
+setTimeout(() => location.reload(), 6 * 3600 * 1000);
+</script>
+</body>
+</html>
