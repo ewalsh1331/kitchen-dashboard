@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv/bin/python tools/gcal.py list:*)",
+      "Bash(.venv/bin/python tools/gcal.py get:*)",
+      "Bash(.venv/bin/python tools/gcal.py pending list:*)",
+      "Bash(.venv/bin/python tools/fitness.py:*)",
+      "Bash(curl -s localhost:8080/api/status:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)"
+    ],
+    "deny": [
+      "Read(./token.json)",
+      "Read(./client_secret.json)"
+    ]
+  }
+}

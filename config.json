@@ -1,11 +1,13 @@
 {
   "calendar_id": "ac33427298c76997c3e9d2a4ec20e4bebc05dcfbc9fe7facb772f8066e68f063@group.calendar.google.com",
+  "weekly_review_event_id": "u1o6gnc8hkahdq38kftihukh0g",
+  "fitness_sheet_id": "1XMXL46VKuKVSKxEkyuJnUj9rBUUxeuewxMJ5VDVMBsw",
   "timezone": "America/Chicago",
   "port": 8080,
   "max_events": 3,
   "cache_seconds": 120,
   "scopes": [
-    "https://www.googleapis.com/auth/calendar.readonly",
+    "https://www.googleapis.com/auth/calendar",
     "https://www.googleapis.com/auth/spreadsheets.readonly"
   ]
 }
