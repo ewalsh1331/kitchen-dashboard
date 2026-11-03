@@ -99,5 +99,9 @@ def index():
     return send_from_directory(app.static_folder, "index.html")
 
 
+import month_api  # month view + rotation
+month_api.register(app)
+
+
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=CONFIG.get("port", 8080))

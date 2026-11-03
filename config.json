@@ -9,5 +9,15 @@
   "scopes": [
     "https://www.googleapis.com/auth/calendar",
     "https://www.googleapis.com/auth/spreadsheets.readonly"
+  ],
+  "rotation": [
+    {
+      "page": "/",
+      "seconds": 45
+    },
+    {
+      "page": "/month",
+      "seconds": 30
+    }
   ]
 }
