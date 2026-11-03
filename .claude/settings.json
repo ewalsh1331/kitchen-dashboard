@@ -19,6 +19,8 @@
       "Bash(.venv/bin/python tools/gcal.py --help)",
       "Bash(.venv/bin/python tools/gcal.py * --help)",
       "Bash(.venv/bin/python tools/workout.py push:*)",
+      "Bash(.venv/bin/python tools/workout.py day:*)",
+      "Bash(.venv/bin/python tools/workout.py log:*)",
       "Bash(bash deploy/refresh-screen.sh)"
     ],
     "deny": [

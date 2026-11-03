@@ -9,6 +9,7 @@ Examples (run from ~/kitchen-dashboard):
   .venv/bin/python tools/workout.py show "Workout Log" --last 15
   .venv/bin/python tools/workout.py show "Workout Templates" --find "Pull"
   .venv/bin/python tools/workout.py day "Pull #1"           # template + last logged session
+  .venv/bin/python tools/workout.py log --date 2026-11-02 --week "Week 1" --day "Legs #1" --rows '[{"Exercise": "RDL", ...}]'
   .venv/bin/python tools/workout.py push                    # upload edits (guarded)
 """
 import argparse
@@ -91,7 +92,7 @@ def cmd_show(a):
     from openpyxl import load_workbook
     if not LOCAL.exists():
         sys.exit("Run 'pull' first.")
-    wb = load_workbook(LOCAL, read_only=True, data_only=True)
+    wb = load_workbook(LOCAL, read_only=True, data_only=not a.formulas)
     if a.tab not in wb.sheetnames:
         sys.exit(f"No tab '{a.tab}'. Tabs: {wb.sheetnames}")
     rows = list(wb[a.tab].iter_rows(values_only=True))
@@ -170,6 +171,77 @@ def cmd_day(a):
     }, indent=2, default=str))
 
 
+def cmd_log(a):
+    """Append one session to Workout Log, copying the formatting of the previous session.
+
+    --rows is a JSON list of objects keyed by Workout Log column names, e.g.
+    [{"Exercise": "RDL", "Suggested Reps": "8-10", "Working Sets": 3,
+      "Set 1 Reps": 15, "Set 1 Weight": 135, "Notes": "..."}]
+    Formula columns (Status) are copied from the previous session. Only edits the local file; run 'push' to upload.
+    """
+    from copy import copy
+    from openpyxl import load_workbook
+    from openpyxl.formula.translate import Translator
+    if not LOCAL.exists() or not STATE.exists():
+        sys.exit("Run 'pull' first.")
+    rows = json.loads(a.rows)
+    if not isinstance(rows, list) or not rows or not all(isinstance(r, dict) and r.get("Exercise") for r in rows):
+        sys.exit("--rows must be a non-empty JSON list of objects, each with an 'Exercise'.")
+    date = dt.datetime.strptime(a.date, "%Y-%m-%d")
+
+    wb = load_workbook(LOCAL)
+    ws = wb["Workout Log"]
+    header = [c.value for c in ws[1]]
+    col = {h: i + 1 for i, h in enumerate(header) if h}
+    bad = sorted({k for r in rows for k in r} - set(col))
+    if bad:
+        sys.exit(f"Unknown columns {bad}. Columns: {[h for h in header if h]}")
+
+    def filled(r):
+        return any(ws.cell(r, c).value is not None for c in range(1, len(header) + 1))
+
+    last = max(r for r in range(1, ws.max_row + 1) if filled(r))
+    # Previous session's day-title row: has Day but no Exercise.
+    title = max(r for r in range(2, last + 1) if ws.cell(r, col["Day"]).value and not ws.cell(r, col["Exercise"]).value)
+    styles = {"blank": title - 1, "title": title, "exercise": title + 1}
+
+    def style_row(dst, kind):
+        """Copy formatting, and any formulas (e.g. Status), from the matching row of the last session."""
+        src = styles[kind]
+        for c in range(1, len(header) + 1):
+            s, d = ws.cell(src, c), ws.cell(dst, c)
+            d._style = copy(s._style)
+            if isinstance(s.value, str) and s.value.startswith("="):
+                d.value = Translator(s.value, origin=s.coordinate).translate_formula(d.coordinate)
+        if ws.row_dimensions[src].height:
+            ws.row_dimensions[dst].height = ws.row_dimensions[src].height
+
+    r = last + 1
+    style_row(r, "blank")
+    r += 1
+    style_row(r, "title")
+    for k, v in (("Date", date), ("Week", a.week), ("Day", a.day)):
+        ws.cell(r, col[k]).value = v
+    added = []
+    for row in rows:
+        r += 1
+        style_row(r, "exercise")
+        for k, v in {"Date": date, "Week": a.week, "Day": a.day, **row}.items():
+            ws.cell(r, col[k]).value = v
+        added.append(r)
+
+    for t in ws.tables.values():  # keep any Excel table covering the new rows
+        start, end = t.ref.split(":")
+        endcol = "".join(ch for ch in end if ch.isalpha())
+        if int("".join(ch for ch in end if ch.isdigit())) >= last:
+            t.ref = f"{start}:{endcol}{r}"
+
+    wb.calculation.fullCalcOnLoad = True  # openpyxl drops cached formula results; Excel recomputes on open
+    wb.save(LOCAL)
+    print(json.dumps({"saved": str(LOCAL), "title_row": last + 2, "exercise_rows": added,
+                      "next": "review, then 'push' to upload"}, indent=2))
+
+
 def main():
     p = argparse.ArgumentParser(description="Workout log (OneDrive xlsx)")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -179,8 +251,14 @@ def main():
     s = sub.add_parser("show"); s.set_defaults(fn=cmd_show)
     s.add_argument("tab"); s.add_argument("--last", type=int, default=15)
     s.add_argument("--find"); s.add_argument("--all", action="store_true")
+    s.add_argument("--formulas", action="store_true", help="show formulas instead of cached values")
     d = sub.add_parser("day", help='template + last logged session for one day, e.g. day "Pull #1"')
     d.set_defaults(fn=cmd_day); d.add_argument("name"); d.add_argument("--block", type=int)
+    lg = sub.add_parser("log", help="append a session to Workout Log (local file; then push)")
+    lg.set_defaults(fn=cmd_log)
+    lg.add_argument("--date", required=True, help="YYYY-MM-DD")
+    lg.add_argument("--week", required=True); lg.add_argument("--day", required=True)
+    lg.add_argument("--rows", required=True, help="JSON list of row objects keyed by column name")
     a = p.parse_args()
     a.fn(a)
 
