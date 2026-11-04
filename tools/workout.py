@@ -92,7 +92,10 @@ def cmd_show(a):
     from openpyxl import load_workbook
     if not LOCAL.exists():
         sys.exit("Run 'pull' first.")
-    wb = load_workbook(LOCAL, read_only=True, data_only=not a.formulas)
+    src = Path(a.file) if a.file else LOCAL
+    if a.file and not src.resolve().is_relative_to(BACKUPS.resolve()):
+        sys.exit("--file must be inside data/backups/")
+    wb = load_workbook(src, read_only=True, data_only=not a.formulas)
     if a.tab not in wb.sheetnames:
         sys.exit(f"No tab '{a.tab}'. Tabs: {wb.sheetnames}")
     rows = list(wb[a.tab].iter_rows(values_only=True))
@@ -242,6 +245,36 @@ def cmd_log(a):
                       "next": "review, then 'push' to upload"}, indent=2))
 
 
+def cmd_track(a):
+    """Add exercises to the Progress tab, copying the last row's formulas and formatting."""
+    from copy import copy
+    from openpyxl import load_workbook
+    from openpyxl.formula.translate import Translator
+    if not LOCAL.exists() or not STATE.exists():
+        sys.exit("Run 'pull' first.")
+    wb = load_workbook(LOCAL)
+    ws = wb["Progress"]
+    names = [ws.cell(r, 1).value for r in range(2, ws.max_row + 1)]
+    last = max(r for r in range(2, ws.max_row + 1) if ws.cell(r, 1).value)
+    added, skipped = [], []
+    for name in a.exercises:
+        if name in names:
+            skipped.append(name)
+            continue
+        dst = last + 1 + len(added)
+        for c in range(1, ws.max_column + 1):
+            s, d = ws.cell(last, c), ws.cell(dst, c)
+            d._style = copy(s._style)
+            if isinstance(s.value, str) and s.value.startswith("="):
+                d.value = Translator(s.value, origin=s.coordinate).translate_formula(d.coordinate)
+        ws.cell(dst, 1).value = name
+        added.append({"row": dst, "exercise": name})
+    if added:
+        wb.calculation.fullCalcOnLoad = True
+        wb.save(LOCAL)
+    print(json.dumps({"added": added, "already_tracked": skipped, "next": "push to upload" if added else None}, indent=2))
+
+
 def main():
     p = argparse.ArgumentParser(description="Workout log (OneDrive xlsx)")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -252,6 +285,7 @@ def main():
     s.add_argument("tab"); s.add_argument("--last", type=int, default=15)
     s.add_argument("--find"); s.add_argument("--all", action="store_true")
     s.add_argument("--formulas", action="store_true", help="show formulas instead of cached values")
+    s.add_argument("--file", help="read a backup in data/backups/ instead of the pulled copy")
     d = sub.add_parser("day", help='template + last logged session for one day, e.g. day "Pull #1"')
     d.set_defaults(fn=cmd_day); d.add_argument("name"); d.add_argument("--block", type=int)
     lg = sub.add_parser("log", help="append a session to Workout Log (local file; then push)")
@@ -259,6 +293,8 @@ def main():
     lg.add_argument("--date", required=True, help="YYYY-MM-DD")
     lg.add_argument("--week", required=True); lg.add_argument("--day", required=True)
     lg.add_argument("--rows", required=True, help="JSON list of row objects keyed by column name")
+    tr = sub.add_parser("track", help="add exercise names to the Progress tab (local file; then push)")
+    tr.set_defaults(fn=cmd_track); tr.add_argument("exercises", nargs="+")
     a = p.parse_args()
     a.fn(a)
 

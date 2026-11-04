@@ -77,6 +77,7 @@ Reply with one line confirming where it went.
 - Log file: Fitness_Program_Log.xlsx in OneDrive (tabs: Workout Templates, Workout Log, plus warm-up/weak-point reference).
 - **Always `tools/workout.py pull` first** (fresh download), then read with `tools/workout.py show TAB` or openpyxl on `data/Fitness_Program_Log.xlsx`.
 - To log: `tools/workout.py log --date YYYY-MM-DD --week "Week N" --day "..." --rows '[{...}]'` (rows keyed by Workout Log column names). It appends with the previous session's formatting and copies the Status formula. Check with `show "Workout Log" --last N --formulas`, then `tools/workout.py push`.
+- New exercise not on the Progress tab yet? `tools/workout.py track "Name" ...` adds a row with the same formulas (then push).
 - Status and the Progress tab are formulas. After a save their cached values read as blank until Excel recalculates; that's expected.
 - Before pushing, show Eric the exact rows you'll add and wait for "yes".
 - If push says the file changed in OneDrive, he edited it in Excel: pull again, re-apply, push. Never force it.
