@@ -3,3 +3,9 @@ token.json
 client_secret.json
 __pycache__/
 data/
+# Never auto-save secrets
+.env
+*.pem
+*.key
+*_deploy
+*service_account*.json
