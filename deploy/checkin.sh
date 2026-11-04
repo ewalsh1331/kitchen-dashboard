@@ -26,6 +26,7 @@ PROMPT=$(sed "s/<tomorrow>/$TOMORROW/g" deploy/checkin-prompt.md)
 OUT=$(timeout 600 "$CLAUDE" -p "$PROMPT" --max-turns 20 --output-format text \
   --allowedTools \
     "Bash(.venv/bin/python tools/gcal.py list:*)" \
+    "Bash(.venv/bin/python tools/gcal.py pending list:*)" \
     "Bash(.venv/bin/python tools/fitness.py:*)" \
     "Bash(.venv/bin/python tools/workout.py pull:*)" \
     "Bash(.venv/bin/python tools/workout.py show:*)" \
