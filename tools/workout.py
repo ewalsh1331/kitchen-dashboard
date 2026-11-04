@@ -275,6 +275,55 @@ def cmd_track(a):
     print(json.dumps({"added": added, "already_tracked": skipped, "next": "push to upload" if added else None}, indent=2))
 
 
+def cmd_fill_date(a):
+    """Fill BLANK Date cells in Workout Log rows FIRST..LAST (never overwrites a date)."""
+    from copy import copy
+    from openpyxl import load_workbook
+    if not LOCAL.exists() or not STATE.exists():
+        sys.exit("Run 'pull' first.")
+    first, last = (int(x) for x in a.rows.split("-"))
+    date = dt.datetime.strptime(a.date, "%Y-%m-%d")
+    wb = load_workbook(LOCAL)
+    ws = wb["Workout Log"]
+    dcol = [c.value for c in ws[1]].index("Date") + 1
+    fmt_src = next((ws.cell(r, dcol) for r in range(2, ws.max_row + 1)
+                    if isinstance(ws.cell(r, dcol).value, dt.datetime)), None)
+    filled, skipped = [], []
+    for r in range(first, last + 1):
+        cell = ws.cell(r, dcol)
+        if cell.value is not None:
+            skipped.append(r)
+            continue
+        if not any(ws.cell(r, c).value is not None for c in range(1, ws.max_column + 1)):
+            continue  # blank spacer row
+        cell.value = date
+        if fmt_src is not None:
+            cell.number_format = fmt_src.number_format
+            cell.font, cell.alignment = copy(fmt_src.font), copy(fmt_src.alignment)
+        filled.append(r)
+    wb.calculation.fullCalcOnLoad = True
+    wb.save(LOCAL)
+    print(json.dumps({"filled_rows": filled, "already_had_date": skipped, "next": "push to upload"}, indent=2))
+
+
+def cmd_clear_row(a):
+    """Clear the values (and links) in one row, only if column A matches --expect."""
+    from openpyxl import load_workbook
+    if not LOCAL.exists() or not STATE.exists():
+        sys.exit("Run 'pull' first.")
+    wb = load_workbook(LOCAL)
+    ws = wb[a.tab]
+    if ws.cell(a.row, 1).value != a.expect:
+        sys.exit(f"Row {a.row} column A is {ws.cell(a.row, 1).value!r}, not {a.expect!r}. Nothing changed.")
+    for c in range(1, ws.max_column + 1):
+        cell = ws.cell(a.row, c)
+        cell.value = None
+        cell.hyperlink = None
+    wb.calculation.fullCalcOnLoad = True
+    wb.save(LOCAL)
+    print(json.dumps({"cleared": f"{a.tab} row {a.row}", "was": a.expect, "next": "push to upload"}, indent=2))
+
+
 def main():
     p = argparse.ArgumentParser(description="Workout log (OneDrive xlsx)")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -295,6 +344,11 @@ def main():
     lg.add_argument("--rows", required=True, help="JSON list of row objects keyed by column name")
     tr = sub.add_parser("track", help="add exercise names to the Progress tab (local file; then push)")
     tr.set_defaults(fn=cmd_track); tr.add_argument("exercises", nargs="+")
+    fd = sub.add_parser("fill-date", help="fill blank Date cells in Workout Log rows, e.g. --rows 2-8")
+    fd.set_defaults(fn=cmd_fill_date); fd.add_argument("--rows", required=True); fd.add_argument("--date", required=True)
+    cr = sub.add_parser("clear-row", help="clear one row's values if column A matches --expect")
+    cr.set_defaults(fn=cmd_clear_row); cr.add_argument("tab"); cr.add_argument("row", type=int)
+    cr.add_argument("--expect", required=True)
     a = p.parse_args()
     a.fn(a)
 

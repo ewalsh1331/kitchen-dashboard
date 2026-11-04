@@ -22,6 +22,8 @@
       "Bash(.venv/bin/python tools/workout.py day:*)",
       "Bash(.venv/bin/python tools/workout.py log:*)",
       "Bash(.venv/bin/python tools/workout.py track:*)",
+      "Bash(.venv/bin/python tools/workout.py fill-date:*)",
+      "Bash(.venv/bin/python tools/workout.py clear-row:*)",
       "Bash(bash deploy/refresh-screen.sh)"
     ],
     "deny": [
