@@ -99,6 +99,7 @@ Reply with one line confirming where it went.
 - After editing the server or page, run `bash deploy/refresh-screen.sh` to restart the service and reopen the browser.
 - Before larger changes, commit: `git add -A && git commit -m "..."`. If something breaks, `git diff` / `git checkout -- FILE` to recover.
 - Never print, copy or commit `token.json` or `client_secret.json`.
+- Backup: private GitHub repo `ewalsh1331/kitchen-dashboard` (deploy key `~/.ssh/kitchen_pi_deploy`). Every commit auto-pushes; a 2 AM timer auto-saves anything uncommitted (`deploy/autosave.sh`, log in `data/autosave.log`).
 - The screen is a regular (non-touch) HDMI monitor in the kitchen, viewed from across the room: big text, high contrast.
 
 ## General
