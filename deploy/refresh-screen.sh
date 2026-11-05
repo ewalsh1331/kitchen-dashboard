@@ -7,7 +7,9 @@ APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 sudo -n systemctl restart kitchen-dashboard || {
   echo "Could not restart the service without a password (see install step for sudoers rule)."; exit 1; }
 
-pkill -f "chromium.*--kiosk" 2>/dev/null
+# Anchored to the browser binary so it can't match a shell whose command line
+# merely mentions chromium/--kiosk (that used to kill the calling shell).
+pkill -f "^/usr/lib/chromium/chromium .*--kiosk" 2>/dev/null
 sleep 2
 
 export XDG_RUNTIME_DIR="/run/user/$(id -u)"
