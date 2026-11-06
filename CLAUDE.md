@@ -66,7 +66,8 @@ Reply with one line confirming where it went.
 
 - Tabs: Garmin, Oura, Activities, Oura Workouts, Golf Rounds, Golf Holes, Golf Shots.
 - **Always label the source (Garmin vs Oura)** for HRV, sleep, resting HR and readiness. Never blend them.
-- Oura rows are dated by **wake-up day**. Garmin activities use the actual calendar day. Oura is the only source for steps.
+- Sleep and overnight HRV in **both** tabs are dated by **wake-up day** (row D = the night you woke from on D, same as the apps). Both tabs were converted to this on 2026-11-05; before that, Garmin used the bed date. Steps, HR and stress are calendar days. Garmin activities use the actual calendar day. Oura is the only source for steps.
+- The sheet is filled daily at 8 AM by `oura_to_sheets.py` / `garmin_to_sheets.py` on Eric's PC (`OneDrive\Documents\Fitness Data Connect\files`); each run re-checks the last 14 days. Old versions are in `old versions/`.
 - Look at **7–14 days of trend**, not just today. Note weekday vs weekend patterns (remote Mon/Fri vs office Tue–Thu).
 - Use the data as context, not as a directive. Eric pushes through normal fatigue fine: follow his lead on intensity, and don't proactively push rest. General observations are fine; no medical or diagnostic claims.
 - Golf data: rounds, holes and shots join on `Scorecard Id`. Shots capture about 70% of strokes (short putts and chips often missing). Add a brief caveat rather than a long one. Par-3 tee shots are often mislabeled `APPROACH`, so use `Shot Order == 1`. Only the first putt per green is logged.
