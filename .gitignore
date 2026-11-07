@@ -9,3 +9,9 @@ data/
 *.key
 *_deploy
 *service_account*.json
+
+# Voice assistant: models, recordings, logs stay local
+voice/models/
+voice/*.wav
+voice/voice.log
+voice/.listen-now
