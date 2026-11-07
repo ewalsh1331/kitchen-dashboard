@@ -24,6 +24,8 @@
       "Bash(.venv/bin/python tools/workout.py track:*)",
       "Bash(.venv/bin/python tools/workout.py fill-date:*)",
       "Bash(.venv/bin/python tools/workout.py clear-row:*)",
+      "Bash(voice/.venv/bin/python voice/assistant.py:*)",
+      "Bash(voice/.venv/bin/python voice/wake_test.py:*)",
       "Bash(bash deploy/refresh-screen.sh)"
     ],
     "deny": [
