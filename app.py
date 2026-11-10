@@ -102,6 +102,9 @@ def index():
 import month_api  # month view + rotation
 month_api.register(app)
 
+import today_api  # daily screen: timeline, tasks, weather
+today_api.register(app, _credentials)
+
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=CONFIG.get("port", 8080))

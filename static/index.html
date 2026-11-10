@@ -6,124 +6,215 @@
 <title>Kitchen Dashboard</title>
 <style>
   :root {
-    --bg: #0f1115; --panel: #181b22; --text: #f2f3f5; --muted: #8b919c;
-    --ok: #4cc38a; --bad: #f2555a; --accent: #f5c84c;
+    --bg: #0f1115; --panel: #181b22; --line: #2a2f3a; --text: #f2f3f5; --muted: #8b919c;
+    --block: #2bb3ad; --appt: #f5c84c; --task: #a77bf3; --other: #6b8cff;
+    --now: #ff5a5f; --rain: #5aa9ff; --bad: #f2555a;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
     font-family: "Inter", "Segoe UI", Roboto, Arial, sans-serif; cursor: none; overflow: hidden; }
-  body { display: grid; grid-template-columns: 1fr 1.3fr; gap: 4vw; padding: 5vh 5vw; transition: opacity 2s; }
+  body { display: grid; grid-template-rows: auto 1fr; gap: 3vh; padding: 4vh 3.5vw; transition: opacity 2s; }
   body.night { opacity: 0.35; }
-  .left { display: flex; flex-direction: column; justify-content: center; }
-  #time { font-size: 15vw; font-weight: 300; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
-  #date { font-size: 3.4vw; color: var(--muted); margin-top: 1.5vh; }
-  #status { margin-top: 6vh; font-size: 2vw; display: flex; align-items: center; gap: 0.8vw; }
-  #dot { width: 1.4vw; height: 1.4vw; border-radius: 50%; background: var(--muted); }
-  #status.ok #dot { background: var(--ok); }
-  #status.bad #dot { background: var(--bad); }
-  #updated { font-size: 1.3vw; color: var(--muted); margin-top: 1vh; }
-  .right { display: flex; flex-direction: column; justify-content: center; gap: 2.2vh; }
-  h2 { font-size: 1.8vw; font-weight: 600; color: var(--muted); text-transform: uppercase;
-    letter-spacing: 0.12em; margin: 0 0 1vh; }
-  .event { background: var(--panel); border-left: 0.5vw solid var(--accent); border-radius: 1vw; padding: 2.4vh 2vw; }
-  .event .when { font-size: 2vw; color: var(--accent); font-weight: 600; }
-  .event .title { font-size: 3.9vw; margin-top: 0.6vh; }
-  .event .where { font-size: 1.6vw; color: var(--muted); margin-top: 0.4vh; }
-  .empty { font-size: 2.4vw; color: var(--muted); }
-  .error { font-size: 1.8vw; color: var(--bad); white-space: pre-wrap; }
+
+  /* Header: clock + date (left), weather (right) */
+  header { display: flex; justify-content: space-between; align-items: center; }
+  #time { font-size: 6vw; font-weight: 300; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  #date { font-size: 2.1vw; color: var(--muted); margin-top: 0.8vh; }
+  #weather { display: flex; align-items: center; gap: 2.5vw; }
+  .now-wx { display: flex; align-items: center; gap: 1vw; }
+  .now-wx svg { width: 5.5vw; height: 5.5vw; }
+  .temp { font-size: 5vw; font-weight: 300; line-height: 1; }
+  .wx-detail { font-size: 1.5vw; color: var(--muted); line-height: 1.45; }
+  .wx-detail b { color: var(--text); font-weight: 500; }
+  .hours { display: flex; gap: 1.6vw; padding-left: 2.5vw; border-left: 1px solid var(--line); }
+  .hour { text-align: center; }
+  .hour .h { font-size: 1.2vw; color: var(--muted); }
+  .hour svg { width: 2.6vw; height: 2.6vw; display: block; margin: 0.6vh auto; }
+  .hour .t { font-size: 1.6vw; }
+  .hour .p { font-size: 1.1vw; color: var(--rain); min-height: 1.4vw; }
+
+  /* Main: timeline (left), tasks (right) */
+  main { display: grid; grid-template-columns: 1.75fr 1fr; gap: 3vw; min-height: 0; }
+  h2 { font-size: 1.5vw; font-weight: 600; color: var(--muted); text-transform: uppercase;
+       letter-spacing: 0.12em; margin: 0 0 1.5vh; }
+  .col { display: flex; flex-direction: column; min-height: 0; }
+  #allday { display: flex; gap: 0.8vw; flex-wrap: wrap; margin-bottom: 1.2vh; }
+  .chip { font-size: 1.5vw; padding: 0.6vh 1vw; border-radius: 0.6vw; background: var(--panel);
+          border-left: 0.4vw solid var(--other); }
+  #timeline { position: relative; flex: 1; min-height: 0; }
+  .hr { position: absolute; left: 6.5vw; right: 0; border-top: 1px solid var(--line); }
+  .hr span { position: absolute; top: -0.8vw; left: -6.5vw; width: 5.6vw; text-align: right;
+             font-size: 1.25vw; line-height: 1.6vw; color: var(--muted); }
+  .ev { position: absolute; border-radius: 0.8vw; background: var(--panel); border-left: 0.5vw solid var(--other);
+        padding: 0.9vh 1vw; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-start; }
+  .ev.block { border-color: var(--block); background: #16302f; }
+  .ev.appointment { border-color: var(--appt); background: #2f2a17; }
+  .ev .title { font-size: 2.1vw; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ev .meta { font-size: 1.35vw; color: #c3c7cf; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 0.3vh; }
+  .ev.compact { flex-direction: row; align-items: center; justify-content: flex-start; gap: 1vw; padding-top: 0; padding-bottom: 0; }
+  .ev.compact .title { font-size: 1.6vw; } .ev.compact .meta { font-size: 1.2vw; margin: 0; }
+  .ev.past { opacity: 0.4; }
+  .ev.current { box-shadow: 0 0 0 2px rgba(255,255,255,0.35); }
+  #nowline { position: absolute; left: 6.5vw; right: 0; height: 0; border-top: 3px solid var(--now); z-index: 5; }
+  #nowline::before { content: ""; position: absolute; left: -0.7vw; top: -0.75vw; width: 1.2vw; height: 1.2vw;
+                     border-radius: 50%; background: var(--now); }
+  .empty { font-size: 2.2vw; color: var(--muted); padding-top: 2vh; }
+
+  #tasks { display: flex; flex-direction: column; gap: 1.6vh; }
+  .task { display: flex; align-items: center; gap: 1.2vw; background: var(--panel); border-radius: 0.8vw;
+          padding: 2vh 1.4vw; font-size: 2.3vw; }
+  .task::before { content: ""; flex: none; width: 1.8vw; height: 1.8vw; border-radius: 50%;
+                  border: 0.25vw solid var(--task); }
+  #error { position: fixed; left: 3.5vw; right: 3.5vw; bottom: 2vh; font-size: 1.4vw; color: var(--bad); }
 </style>
 </head>
 <body>
-  <section class="left">
-    <div id="time">--:--</div>
-    <div id="date"></div>
-    <div id="status"><span id="dot"></span><span id="status-text">Connecting…</span></div>
-    <div id="updated"></div>
-  </section>
-  <section class="right">
-    <h2 id="cal-name">Up next</h2>
-    <div id="events"></div>
-  </section>
+  <header>
+    <div><div id="time">--:--</div><div id="date"></div></div>
+    <div id="weather"></div>
+  </header>
+  <main>
+    <section class="col">
+      <h2>Today</h2>
+      <div id="allday"></div>
+      <div id="timeline"></div>
+    </section>
+    <section class="col">
+      <h2 id="tasks-h">Tasks</h2>
+      <div id="tasks"></div>
+    </section>
+  </main>
+  <div id="error"></div>
 
 <script>
 const TZ = "America/Chicago";
 const NIGHT_START = 23, NIGHT_END = 6;   // dim between 11 PM and 6 AM
 const POLL_MS = 60 * 1000;
+const fmt = o => new Intl.DateTimeFormat("en-US", { timeZone: TZ, ...o });
+const fmtClock = fmt({ hour: "numeric", minute: "2-digit" });
+const fmtDate = fmt({ weekday: "long", month: "long", day: "numeric" });
+const fmtHour = fmt({ hour: "numeric" });
+const parts = d => Object.fromEntries(fmt({ hour: "numeric", minute: "numeric", hourCycle: "h23" })
+  .formatToParts(d).map(p => [p.type, p.value]));
+const hoursOf = d => { const p = parts(d); return Number(p.hour) + Number(p.minute) / 60; };  // local hour as decimal
+let data = null;
 
-const fmtTime = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: TZ });
-const fmtDate = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: TZ });
-const fmtDay  = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: TZ });
-const hourNow = () => Number(new Intl.DateTimeFormat("en-US", { hour: "numeric", hourCycle: "h23", timeZone: TZ }).format(new Date()));
-
-function tick() {
-  const now = new Date();
-  document.getElementById("time").textContent = fmtTime.format(now).replace(/\s?[AP]M$/, "");
-  document.getElementById("date").textContent = fmtDate.format(now);
-  const h = hourNow();
-  document.body.classList.toggle("night", h >= NIGHT_START || h < NIGHT_END);
-}
-
-function dayLabel(d) {
-  const key = x => new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(x);
-  const today = new Date(), tomorrow = new Date(Date.now() + 864e5);
-  if (key(d) === key(today)) return "Today";
-  if (key(d) === key(tomorrow)) return "Tomorrow";
-  return fmtDay.format(d);
-}
-
-function whenText(ev) {
-  if (ev.all_day) {
-    const [y, m, d] = ev.start.split("-").map(Number);
-    return dayLabel(new Date(Date.UTC(y, m - 1, d, 12))) + " · All day";
-  }
-  const d = new Date(ev.start);
-  return dayLabel(d) + " · " + fmtTime.format(d);
-}
+// ---- weather icons (inline SVG; the Pi has no emoji font) ----
+const SUN = '<circle cx="32" cy="32" r="11" fill="#f5c84c"/><g stroke="#f5c84c" stroke-width="4" stroke-linecap="round">' +
+  [0,45,90,135,180,225,270,315].map(a => `<line x1="32" y1="9" x2="32" y2="15" transform="rotate(${a} 32 32)"/>`).join("") + "</g>";
+const CLOUD = (y = 0, c = "#c9ced8") => `<path transform="translate(0 ${y})" fill="${c}" d="M18 48h28a10 10 0 0 0 1-20 14 14 0 0 0-27-3 10 10 0 0 0-2 23z"/>`;
+const ICONS = {
+  sun: SUN,
+  moon: '<path fill="#d9dce3" d="M40 10a22 22 0 1 0 14 34A18 18 0 0 1 40 10z"/>',
+  cloud: CLOUD(),
+  partly: '<g transform="translate(-6 -8) scale(0.8)">' + SUN + "</g>" + CLOUD(4),
+  fog: '<g stroke="#c9ced8" stroke-width="4" stroke-linecap="round"><line x1="12" y1="24" x2="52" y2="24"/><line x1="8" y1="34" x2="56" y2="34"/><line x1="14" y1="44" x2="50" y2="44"/></g>',
+  rain: CLOUD(-6) + '<g stroke="#5aa9ff" stroke-width="3.5" stroke-linecap="round"><line x1="22" y1="48" x2="19" y2="56"/><line x1="32" y1="48" x2="29" y2="56"/><line x1="42" y1="48" x2="39" y2="56"/></g>',
+  snow: CLOUD(-6) + '<g fill="#ffffff"><circle cx="21" cy="52" r="2.6"/><circle cx="32" cy="55" r="2.6"/><circle cx="43" cy="52" r="2.6"/></g>',
+  storm: CLOUD(-6) + '<path fill="#f5c84c" d="M33 40l-8 12h6l-3 10 10-14h-6l3-8z"/>',
+};
+const icon = name => `<svg viewBox="0 0 64 64">${ICONS[name] || ICONS.cloud}</svg>`;
 
 function el(tag, cls, text) {
   const e = document.createElement(tag);
-  e.className = cls; e.textContent = text;
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
   return e;
 }
 
-function setStatus(ok, text) {
-  const s = document.getElementById("status");
-  s.className = ok ? "ok" : "bad";
-  document.getElementById("status-text").textContent = text;
+function tick() {
+  const now = new Date();
+  document.getElementById("time").textContent = fmtClock.format(now).replace(/\s?[AP]M$/, "");
+  document.getElementById("date").textContent = fmtDate.format(now);
+  const h = hoursOf(now);
+  document.body.classList.toggle("night", h >= NIGHT_START || h < NIGHT_END);
+}
+
+function renderWeather(w) {
+  const box = document.getElementById("weather");
+  if (!w || w.error) { box.innerHTML = '<div class="wx-detail">Weather unavailable</div>'; return; }
+  const rain = w.pop >= 20 ? ` · <span style="color:var(--rain)">${w.pop}% rain</span>` : "";
+  box.innerHTML =
+    `<div class="now-wx">${icon(w.icon)}<div class="temp">${w.temp}°</div></div>
+     <div class="wx-detail"><b>${w.label}</b><br>Feels ${w.feels}° · Wind ${w.wind} mph<br>
+       High <b>${w.high}°</b> · Low <b>${w.low}°</b>${rain}</div>
+     <div class="hours">${w.hours.map(h => `<div class="hour"><div class="h">${fmtHour.format(new Date(h.time))}</div>
+       ${icon(h.icon)}<div class="t">${h.temp}°</div><div class="p">${h.pop >= 20 ? h.pop + "%" : ""}</div></div>`).join("")}</div>`;
+}
+
+function timeRange(s, e) {
+  const a = fmtClock.format(s), b = fmtClock.format(e);
+  const sameHalf = a.slice(-2) === b.slice(-2);
+  return (sameHalf ? a.replace(/\s?[AP]M$/, "") : a) + " – " + b;
+}
+
+function renderTimeline() {
+  const box = document.getElementById("timeline");
+  box.replaceChildren();
+  const evs = (data.events || []).map(e => ({ ...e, s: new Date(e.start), e: new Date(e.end) }));
+  const now = new Date(), nowH = hoursOf(now);
+  // Visible range: at least 7 AM–10 PM, stretched to fit early/late events, always including now.
+  let lo = 7, hi = 22;
+  for (const e of evs) { lo = Math.min(lo, Math.floor(hoursOf(e.s))); hi = Math.max(hi, Math.ceil(hoursOf(e.e) || 24)); }
+  lo = Math.max(0, Math.min(lo, Math.floor(nowH))); hi = Math.min(24, Math.max(hi, Math.ceil(nowH + 0.01)));
+  const span = hi - lo, y = h => ((h - lo) / span) * 100;
+  const step = span > 16 ? 2 : 1;
+  for (let h = lo; h <= hi; h += step) {
+    const line = el("div", "hr"); line.style.top = y(h) + "%";
+    line.append(el("span", "", `${h % 12 || 12} ${h % 24 < 12 ? "AM" : "PM"}`));
+    box.append(line);
+  }
+  // Side-by-side lanes for overlapping events.
+  const lanes = [];
+  for (const e of evs.sort((a, b) => a.s - b.s)) {
+    let i = lanes.findIndex(end => end <= e.s); if (i < 0) { i = lanes.length; lanes.push(0); }
+    lanes[i] = e.e; e.lane = i;
+  }
+  const nLanes = Math.max(1, lanes.length);
+  for (const e of evs) {
+    const top = y(Math.max(lo, hoursOf(e.s))), bottom = y(Math.min(hi, hoursOf(e.e) || 24));
+    const card = el("div", "ev " + e.kind);
+    Object.assign(card.style, { top: top + "%", height: Math.max(bottom - top, 4.5) + "%",
+      left: `calc(7vw + (100% - 7vw) * ${e.lane / nLanes})`, width: `calc((100% - 7vw) / ${nLanes} - 0.6vw)` });
+    if (bottom - top < 9) card.classList.add("compact");
+    if (e.e <= now) card.classList.add("past"); else if (e.s <= now) card.classList.add("current");
+    card.append(el("div", "title", e.title));
+    const loc = e.location && !e.title.includes(e.location) ? " · " + e.location : "";
+    card.append(el("div", "meta", timeRange(e.s, e.e) + loc));
+    box.append(card);
+  }
+  if (!evs.length) box.append(el("div", "empty", "Nothing scheduled today"));
+  const nl = el("div"); nl.id = "nowline"; nl.style.top = y(nowH) + "%"; box.append(nl);
+
+  const ad = document.getElementById("allday"); ad.replaceChildren();
+  for (const a of data.all_day || []) ad.append(el("div", "chip", a.title));
+}
+
+function renderTasks() {
+  const box = document.getElementById("tasks"); box.replaceChildren();
+  const tasks = data.tasks || [];
+  document.getElementById("tasks-h").textContent = tasks.length ? `Tasks · ${tasks.length}` : "Tasks";
+  if (!tasks.length) box.append(el("div", "empty", "No tasks today"));
+  for (const t of tasks) box.append(el("div", "task", t.title));
 }
 
 async function refresh() {
-  const box = document.getElementById("events");
+  const err = document.getElementById("error");
   try {
-    const res = await fetch("/api/status", { cache: "no-store" });
-    const data = await res.json();
-    box.replaceChildren();
-    if (!data.ok) {
-      setStatus(false, "Google connection problem");
-      box.append(el("div", "error", data.error || "Unknown error"));
-    } else {
-      setStatus(true, "Connected ✓");
-      document.getElementById("cal-name").textContent = "Up next · " + data.calendar;
-      if (!data.events.length) box.append(el("div", "empty", "Nothing scheduled"));
-      for (const ev of data.events) {
-        const card = el("div", "event", "");
-        card.append(el("div", "when", whenText(ev)), el("div", "title", ev.title));
-        if (ev.location) card.append(el("div", "where", ev.location));
-        box.append(card);
-      }
-    }
-    if (data.fetched_at) document.getElementById("updated").textContent =
-      "Updated " + fmtTime.format(new Date(data.fetched_at));
+    const res = await fetch("/api/today", { cache: "no-store" });
+    data = await res.json();
+    err.textContent = data.ok ? "" : "Google connection problem: " + (data.error || "unknown");
+    renderWeather(data.weather); renderTimeline(); renderTasks();
   } catch (e) {
-    setStatus(false, "Dashboard service not responding");
+    err.textContent = "Dashboard service not responding";
   }
 }
 
 tick(); refresh();
 setInterval(tick, 1000);
 setInterval(refresh, POLL_MS);
-// Full reload every 6 hours picks up code changes without touching the Pi.
-setTimeout(() => location.reload(), 6 * 3600 * 1000);
+setInterval(() => data && renderTimeline(), 30 * 1000);   // keep the "now" line moving
+setTimeout(() => location.reload(), 6 * 3600 * 1000);     // pick up code changes
 </script>
 </body>
 </html>
