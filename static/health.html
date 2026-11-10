@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Health</title>
+<style>
+  /* Layout: header (title · legend · summary) / four cards (Sleep, Recovery, Readiness, Training) /
+     last-7-days grid | golf card (only for 3 days after a real round). Data: /api/health */
+  :root {
+    --bg: #0f1115; --panel: #181b22; --line: #2a2f3a; --text: #f2f3f5; --muted: #8b919c; --soft: #c3c7cf; --faint: #6b717c;
+    --sleep: #5d7fb0; --sleep-text: #91aed8;
+    --rec: #6f9d7e;   --rec-text: #9cc7a9;
+    --ready: #8a7fc4; --ready-text: #b7aee6;
+    --train: #7a3f66; --train-text: #c993b8;
+    --golf: #c9a45c;  --golf-text: #e3c48a;
+    --bad: #f2555a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font-family: "Inter", "Segoe UI", Roboto, Arial, sans-serif; cursor: none; overflow: hidden; }
+  body { display: flex; flex-direction: column; gap: 2.6vh; padding: 3.5vh 3.5vw; transition: opacity 2s; }
+  body.night { opacity: 0.35; }
+  h2 { font-size: 1.4vw; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; margin: 0 0 1.4vh; }
+
+  header { display: flex; align-items: baseline; gap: 2vw; }
+  h1 { margin: 0; font-size: 2.6vw; font-weight: 600; letter-spacing: -0.01em; }
+  h1 span { color: var(--muted); font-weight: 400; font-size: 2vw; margin-left: 1.2vw; }
+  .legend { font-size: 1.25vw; color: var(--muted); display: flex; align-items: center; gap: 1vw; margin-left: auto; margin-right: 2vw; }
+  .leg { display: inline-flex; align-items: center; gap: 0.5vw; }
+  .leg i { display: inline-block; width: 1.4vw; height: 0; border-top: 2.5px solid var(--soft); }
+  .leg i.g { border-top-style: dashed; opacity: 0.7; }
+  .summary { font-size: 1.6vw; color: var(--soft); }
+  .summary b { color: var(--text); font-weight: 600; }
+
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.4vw; }
+  .tile { background: var(--panel); border-radius: 1vw; padding: 2vh 1.6vw 1.6vh; display: flex; flex-direction: column; gap: 1vh;
+          border-top: 0.45vh solid var(--c); min-width: 0; }
+  .tile .k { font-size: 1.4vw; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ct);
+             display: flex; justify-content: space-between; }
+  .tile .k .span { color: var(--muted); font-weight: 500; letter-spacing: 0.04em; text-transform: none; font-size: 1.15vw; }
+  .tile .big { display: flex; align-items: baseline; gap: 1vw; }
+  .tile .big .v { font-size: 3.4vw; font-weight: 300; line-height: 1; font-variant-numeric: tabular-nums; }
+  .tile .big .u { font-size: 1.4vw; color: var(--muted); }
+  .tile .rows { display: grid; grid-template-columns: auto 1fr; gap: 0.4vh 1vw; font-size: 1.3vw; color: var(--soft); }
+  .tile .rows .src { color: var(--muted); }
+  .tile .rows b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+  .chart { position: relative; height: 15vh; margin-top: auto; padding-right: 4.6vw; padding-left: 2.6vw; }
+  .chart svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .lv { position: absolute; right: 0; transform: translateY(-50%); font-size: 1.05vw; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .lv.band { font-weight: 600; }
+  .ax { position: absolute; left: 0; transform: translateY(-50%); font-size: 1vw; color: var(--faint); font-variant-numeric: tabular-nums; }
+
+  .bottom { display: grid; grid-template-columns: 1.7fr 1fr; gap: 2vw; flex: 1; min-height: 0; }
+  .bottom.nogolf { grid-template-columns: 1fr; }
+  .bottom > div:first-child { display: flex; flex-direction: column; min-height: 0; }
+  .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.8vw; flex: 1; }
+  .day { position: relative; overflow: hidden; min-width: 0; background: var(--panel); border-radius: 0.8vw;
+         padding: 2vh 0.6vw; display: flex; flex-direction: column; gap: 1.2vh; align-items: center; }
+  .day > * { position: relative; z-index: 1; }
+  .day .d { font-size: 1.5vw; color: var(--text); font-weight: 600; }
+  .day .wt { font-size: 1.1vw; color: var(--muted); margin-top: -0.6vh; min-height: 1.3vw; }
+  .day .rest { font-size: 1.4vw; color: #3a404c; text-align: center; }
+  .chips { display: flex; flex-direction: column; gap: 0.5vh; width: 100%; }
+  .chip { font-size: 1.35vw; text-align: center; border-radius: 0.4vw; padding: 0.6vh 0.3vw; font-weight: 600; line-height: 1.15; }
+  .chip.lift { background: var(--train); color: #fff; } .chip.run, .chip.cardio { background: #2a3140; color: var(--soft); }
+  .chip.c-golf { background: var(--golf); color: #1b1608; }
+  .day .fill { position: absolute; z-index: 0; left: 0; right: 0; bottom: 0;
+               background: linear-gradient(rgba(93,127,176,.28), rgba(93,127,176,.12)); border-top: 2px solid rgba(145,174,216,.55); }
+  .day .steps { margin-top: auto; width: 100%; text-align: center; }
+  .day .steps .n { font-size: 1.6vw; color: var(--soft); font-variant-numeric: tabular-nums; }
+  .day .steps .n small { display: block; font-size: 1vw; color: var(--muted); }
+
+  .golf { background: var(--panel); border-radius: 1vw; padding: 1.8vh 1.6vw; border-top: 0.45vh solid var(--golf);
+          display: flex; flex-direction: column; gap: 1.2vh; }
+  .golf .k { font-size: 1.4vw; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--golf-text); }
+  .golf .where { font-size: 1.5vw; color: var(--soft); }
+  .golf .score { display: flex; align-items: baseline; gap: 1vw; }
+  .golf .score .v { font-size: 4vw; font-weight: 300; line-height: 1; }
+  .golf .score .p { font-size: 2.2vw; color: var(--golf-text); font-weight: 600; }
+  .golf .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1vh 1vw; }
+  .golf .stats div { font-size: 1.15vw; color: var(--muted); }
+  .golf .stats b { display: block; font-size: 1.8vw; color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .golf .recent { font-size: 1.3vw; color: var(--muted); }
+  .golf .recent b { color: var(--text); font-weight: 600; }
+  #error { position: fixed; left: 3.5vw; right: 3.5vw; bottom: 1.5vh; font-size: 1.4vw; color: var(--bad); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Health<span id="date"></span></h1>
+  <div class="legend">Charts: last 14 days <span class="leg"><i></i>Oura <i class="g"></i>Garmin</span></div>
+  <div class="summary" id="summary"></div>
+</header>
+<section class="tiles" id="tiles"></section>
+<section class="bottom" id="bottom">
+  <div><h2>Last 7 days</h2><div class="week" id="week"></div></div>
+  <div class="golf" id="golf"></div>
+</section>
+<div id="error"></div>
+<script>
+const TZ = "America/Chicago";
+const NIGHT_START = 23, NIGHT_END = 6;
+const $ = id => document.getElementById(id);
+const fmt = o => new Intl.DateTimeFormat("en-US", { timeZone: TZ, ...o });
+const hm = s => s ? `${Math.floor(s / 3600)}h ${String(Math.round(s % 3600 / 60)).padStart(2, "0")}m` : "–";
+const n0 = v => v == null ? "–" : Math.round(v);
+const dayName = iso => { const [y, m, d] = iso.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d, 12)); };
+
+// Chart with level markers. o: {lo, hi, band:[a,b,label], lines:[[y,label]], second:[...], kind:"line"|"bars", color}
+function chart(vals, o) {
+  const W = 300, H = 70, lo = o.lo, hi = o.hi, n = vals.length;
+  const Y = y => H - ((Math.max(lo, Math.min(hi, y)) - lo) / (hi - lo)) * H, pct = y => (Y(y) / H) * 100;
+  let svg = `<line x1="0" x2="${W}" y1="0" y2="0" stroke="#2a2f3a" vector-effect="non-scaling-stroke"/>` +
+            `<line x1="0" x2="${W}" y1="${H}" y2="${H}" stroke="#2a2f3a" vector-effect="non-scaling-stroke"/>`;
+  let lab = `<span class="ax" style="top:0%">${o.hi}</span><span class="ax" style="top:100%">${o.lo}</span>`;
+  if (o.band && o.band[0] != null && o.band[1] != null) {
+    svg += `<rect x="0" y="${Y(o.band[1])}" width="${W}" height="${Y(o.band[0]) - Y(o.band[1])}" fill="${o.color}" opacity="0.13"/>`;
+    lab += `<span class="lv band" style="top:${(pct(o.band[1]) + pct(o.band[0])) / 2}%;color:${o.color}">${o.band[2]}</span>`;
+  }
+  for (const [y, l] of o.lines || []) {
+    if (y == null) continue;
+    svg += `<line x1="0" x2="${W}" y1="${Y(y)}" y2="${Y(y)}" stroke="#4a505c" stroke-dasharray="3 4" vector-effect="non-scaling-stroke"/>`;
+    lab += `<span class="lv" style="top:${pct(y)}%">${l}</span>`;
+  }
+  if (o.kind === "bars") {
+    const bw = W / n;
+    vals.forEach((v, i) => { const h = Math.max(1.5, H - Y(v || 0));
+      svg += `<rect x="${i * bw + 2}" y="${H - h}" width="${bw - 4}" height="${h}" rx="2" fill="${o.color}" opacity="${i === n - 1 ? 1 : 0.75}"/>`; });
+  } else {
+    const X = i => (i / (n - 1)) * W;
+    const path = arr => { let d = "", pen = false;
+      arr.forEach((y, i) => { if (y == null) { pen = false; return; } d += (pen ? "L" : "M") + X(i).toFixed(1) + " " + Y(y).toFixed(1); pen = true; }); return d; };
+    if (o.second) svg += `<path d="${path(o.second)}" fill="none" stroke="${o.color}" stroke-width="2" stroke-dasharray="5 5" opacity="0.6" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>`;
+    svg += `<path d="${path(vals)}" fill="none" stroke="${o.color}" stroke-width="2.4" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>`;
+    const last = vals.map((v, i) => v == null ? -1 : i).filter(i => i >= 0).pop();
+    if (last != null) svg += `<circle cx="${X(last)}" cy="${Y(vals[last])}" r="4" fill="${o.color}"/>`;
+  }
+  return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${svg}</svg>${lab}</div>`;
+}
+
+function render(D) {
+  $("date").textContent = fmt({ weekday: "short", month: "short", day: "numeric" }).format(new Date());
+  const s = D.summary;
+  $("summary").innerHTML = [s.hrv && `<b>${s.hrv}</b>`, `active <b>${s.active} of ${s.of} days</b>`].filter(Boolean).join(" · ");
+  const R = D.ranges, rg = b => b && b.p25 != null ? `${Math.round(b.p25)}–${Math.round(b.p75)}` : "";
+
+  $("tiles").innerHTML = `
+  <div class="tile" style="--c:var(--sleep);--ct:var(--sleep-text)">
+    <div class="k">Sleep</div>
+    <div class="big"><span class="v">${n0(D.sleep.oura)}</span><span class="u">Oura · ${hm(D.sleep.oura_sec)}</span></div>
+    <div class="rows"><span class="src">Garmin</span><span><b>${n0(D.sleep.garmin)}</b> · ${hm(D.sleep.garmin_sec)}</span></div>
+    ${chart(D.sleep.chart.oura, { lo: 0, hi: 100, second: D.sleep.chart.garmin, color: "#91aed8", lines: [[85, "85"], [70, "70 good"]] })}
+  </div>
+  <div class="tile" style="--c:var(--rec);--ct:var(--rec-text)">
+    <div class="k">Recovery</div>
+    <div class="big"><span class="v">${n0(D.recovery.oura_hrv)}</span><span class="u">ms HRV · Oura</span></div>
+    <div class="rows"><span class="src">Garmin</span><span><b>${n0(D.recovery.garmin_hrv)} ms</b> · RHR <b>${n0(D.recovery.rhr)}</b></span></div>
+    ${chart(D.recovery.chart.oura, { lo: 20, hi: 120, second: D.recovery.chart.garmin, color: "#9cc7a9",
+        band: [R.oura_hrv.p25, R.oura_hrv.p75, rg(R.oura_hrv)], lines: [[R.oura_hrv.p10, `${Math.round(R.oura_hrv.p10)} low`]] })}
+  </div>
+  <div class="tile" style="--c:var(--ready);--ct:var(--ready-text)">
+    <div class="k">Readiness</div>
+    <div class="big"><span class="v">${n0(D.readiness.oura)}</span><span class="u">Oura · ${D.readiness.label}</span></div>
+    <div class="rows"><span class="src">Garmin</span><span><b>${n0(D.readiness.garmin)}</b> training readiness</span></div>
+    ${chart(D.readiness.chart.oura, { lo: 0, hi: 100, second: D.readiness.chart.garmin, color: "#b7aee6",
+        band: [R.oura_ready.p25, R.oura_ready.p75, rg(R.oura_ready)] })}
+  </div>
+  <div class="tile" style="--c:var(--train);--ct:var(--train-text)">
+    <div class="k">Training<span class="span">Garmin</span></div>
+    <div class="big"><span class="v">${D.training.lifts}</span><span class="u">lift${D.training.lifts === 1 ? "" : "s"} · last 7 days</span></div>
+    <div class="rows"><span class="src">Also</span><span><b>${D.training.runs}</b> run${D.training.runs === 1 ? "" : "s"} · <b>${D.training.cardio}</b> cardio</span></div>
+    ${chart(D.training.chart, { lo: 0, hi: 160, color: "#c993b8", kind: "bars", lines: [[150, "150m"], [60, "60m"]] })}
+  </div>`;
+
+  const maxSteps = Math.max(1, ...D.week.map(w => w.steps));
+  $("week").innerHTML = D.week.map(w => `<div class="day">
+      <div class="d">${w.label}</div><div class="wt">${w.type}</div>
+      <div class="chips">${w.chips.length ? w.chips.map(([k, l]) => `<div class="chip ${k === "golf" ? "c-golf" : k}">${l}</div>`).join("") : '<div class="rest">—</div>'}</div>
+      <div class="fill" style="height:${w.steps / maxSteps * 38}%"></div>
+      <div class="steps"><div class="n">${w.steps ? (w.steps / 1000).toFixed(1) + "k" : "–"}<small>steps</small></div></div>
+    </div>`).join("");
+
+  const g = D.golf, box = $("golf");
+  $("bottom").classList.toggle("nogolf", !g);
+  box.hidden = !g;
+  if (g) {
+    const tp = g.to_par == null ? "" : g.to_par === 0 ? "E" : (g.to_par > 0 ? "+" : "") + g.to_par;
+    const when = fmt({ weekday: "short", month: "short", day: "numeric" }).format(dayName(g.date));
+    const stat = (v, l) => v == null ? "" : `<div><b>${v}</b>${l}</div>`;
+    box.innerHTML = `
+      <div class="k">Golf · ${when}</div>
+      <div class="where">${g.course} · ${g.holes} holes</div>
+      <div class="score"><span class="v">${g.strokes}</span><span class="p">${tp}</span></div>
+      <div class="stats">${stat(g.putts, "putts")}${stat(g.fairways, "fairways")}${stat(g.penalties, g.penalties === 1 ? "penalty" : "penalties")}
+        ${stat(g.birdies, g.birdies === 1 ? "birdie" : "birdies")}${stat(g.pars, "pars")}${stat(g.bogeys + g.doubles, "bogeys or worse")}</div>
+      <div class="recent">Recent rounds: ${D.recent_rounds.map(r => `<b>${r.strokes}</b> ${fmt({ month: "short", day: "numeric" }).format(dayName(r.date))}`).join(" · ")}</div>`;
+  }
+}
+
+async function refresh() {
+  try {
+    const D = await (await fetch("/api/health", { cache: "no-store" })).json();
+    $("error").textContent = D.ok ? "" : "Couldn't load health data: " + (D.error || "unknown");
+    if (D.ok) render(D);
+  } catch (e) {
+    $("error").textContent = "Dashboard service not responding";
+  }
+}
+function dim() {
+  const h = Number(fmt({ hour: "numeric", hourCycle: "h23" }).format(new Date()));
+  document.body.classList.toggle("night", h >= NIGHT_START || h < NIGHT_END);
+}
+dim(); refresh();
+setInterval(dim, 60 * 1000);
+setInterval(refresh, 5 * 60 * 1000);
+setTimeout(() => location.reload(), 6 * 3600 * 1000);
+</script>
+</body>
+</html>

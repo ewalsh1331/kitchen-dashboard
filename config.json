@@ -16,6 +16,10 @@
       "seconds": 45
     },
     {
+      "page": "/health",
+      "seconds": 30
+    },
+    {
       "page": "/month",
       "seconds": 30
     }

@@ -98,6 +98,7 @@ Reply with one line confirming where it went.
 ## The kitchen dashboard (this folder)
 
 - `app.py`: Flask server on port 8080, reads Google directly. `static/index.html`: the full-screen page. `config.json`: settings.
+- Screens rotate (`config.json` → `rotation`): day screen (`static/index.html`, data `today_api.py`) → Health (`static/health.html`, data `health_api.py`: Oura + Garmin charts with 60-day "your range" bands, last 7 days, golf card for 3 days after a real round) → month (`static/month.html`).
 - After editing the server or page, run `bash deploy/refresh-screen.sh` to restart the service and reopen the browser.
 - Before larger changes, commit: `git add -A && git commit -m "..."`. If something breaks, `git diff` / `git checkout -- FILE` to recover.
 - Never print, copy or commit `token.json` or `client_secret.json`.
