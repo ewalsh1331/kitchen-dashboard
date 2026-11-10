@@ -30,9 +30,10 @@ TZ_NAME = CONFIG["timezone"]
 TZ = ZoneInfo(TZ_NAME)
 WEEKLY_REVIEW_ID = CONFIG.get("weekly_review_event_id", "u1o6gnc8hkahdq38kftihukh0g")
 
-# Eric's color conventions
-TYPE_COLORS = {"block": "7", "appointment": "5", "task": "3"}
-COLOR_NAMES = {"7": "teal/Peacock (block)", "5": "yellow/Banana (appointment)", "3": "purple/Grape (task)"}
+# Eric's color conventions (match the kitchen screen: plum blocks, sage appointments, grey tasks).
+# Changed 2026-11-10 from Peacock/Banana/Grape.
+TYPE_COLORS = {"block": "3", "appointment": "2", "task": "8"}
+COLOR_NAMES = {"3": "purple/Grape (block)", "2": "green/Sage (appointment)", "8": "grey/Graphite (task)"}
 
 
 def svc():

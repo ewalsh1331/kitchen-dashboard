@@ -3,7 +3,8 @@
 Hooked in from app.py with:  import today_api; today_api.register(app)
 GET /api/today -> {ok, date, events:[...], all_day:[...], tasks:[...], weather:{...}}
 
-Tasks are events colored Grape (colorId "3"), the color tools/gcal.py gives --type task.
+Event types come from the Google color tools/gcal.py gives each --type:
+Grape (3) = block, Sage (2) = appointment, Graphite (8) = task.
 Weather is Open-Meteo (free, no key), cached 15 minutes.
 """
 import datetime as dt
@@ -24,7 +25,8 @@ CAL_CACHE = CONFIG.get("cache_seconds", 120)
 WX_CACHE = 15 * 60
 LAT, LON = CONFIG.get("weather_lat", 43.0389), CONFIG.get("weather_lon", -87.9065)  # Milwaukee
 
-TYPES = {"7": "block", "5": "appointment", "3": "task"}
+TYPES = {"3": "block", "2": "appointment", "8": "task",
+         "7": "block", "5": "appointment"}   # 7/5: pre-2026-11-10 colors, in case an old event slips through
 _lock = threading.Lock()
 _cal = {"at": 0.0, "data": None}
 _wx = {"at": 0.0, "data": None}

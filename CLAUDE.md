@@ -31,10 +31,11 @@ All tool output is JSON. Run `--help` on any tool for details.
 - "Claude Calendar" is the source of truth for scheduling. The tools only touch that calendar.
 - **Check for conflicts (`list`) before proposing anything.** Leave buffer time between commitments.
 - **Ask before creating, changing or deleting any event.** Propose the exact details (title, day, time, type), wait for "yes", then run it.
-- Colors are applied by `--type`:
-  - `block` → teal: work hours and other time blocks
-  - `appointment` → yellow: meetings, golf rounds, real appointments
-  - `task` → purple: tasks, chores, reminders
+- Colors are applied by `--type` and match the kitchen screen (changed 2026-11-10):
+  - `block` → Grape (purple; plum on the screen): work hours and other time blocks
+  - `appointment` → Sage (green): meetings, golf rounds, real appointments
+  - `task` → Graphite (grey): tasks, chores, reminders (shown in the screen's To do list, not on the timeline)
+  - Events with any other color show as "other" (slate blue) on the screen.
   - If the type is unclear, ask.
 - Golf rounds: title `Golf - [Course Name]`, type appointment, location = course, about 4–4.5 h (2 h for 9 holes).
 - Task/chore reminders: `--type task` with `--date`. This makes a 12:00–12:15 PM block with a popup at start, shown as free. Every task on the same day uses the same 12:00 slot; never stagger them. Label them clearly as tasks (e.g. `Task: Clean sheets`).

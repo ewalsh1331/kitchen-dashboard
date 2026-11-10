@@ -8,8 +8,9 @@
   :root {
     --bg: #0f1115; --panel: #181b22; --panel-dim: #13151b; --line: #262a33;
     --text: #f2f3f5; --muted: #8b919c; --faint: #4a4f59;
-    --accent: #f5c84c; --bad: #f2555a;
-    --c7: #3fb8c4; --c5: #f5c84c; --c3: #a98be8; --c0: #8b919c;
+    --accent: #ff5a5f; --bad: #f2555a;   /* today = same red as "now" on the daily screen */
+    /* Same scheme as the daily screen: plum blocks, sage appointments, grey tasks */
+    --c-block: #c993b8; --c-appt: #9cc7a9; --c-task: #a7adb8; --c0: #6f7682;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
@@ -30,7 +31,7 @@
   .day.out { background: var(--panel-dim); }
   .day.out .num { color: var(--faint); }
   .day.past:not(.today) .ev, .day.out .ev { opacity: 0.45; }
-  .ev.appt .name { color: var(--c5); font-weight: 600; }
+  .ev.appt .name { color: var(--c-appt); font-weight: 600; }
   .day.today { border-color: var(--accent); }
   .num { font-size: 1.45vw; font-weight: 600; color: var(--muted); }
   .today .num { color: var(--bg); background: var(--accent); border-radius: 0.4vw;
@@ -52,9 +53,9 @@
   <header>
     <div id="title">&nbsp;</div>
     <div id="legend">
-      <span style="--dot: var(--c5)">Appointments</span>
-      <span style="--dot: var(--c3)">Tasks</span>
-      <span style="--dot: var(--c7)">Blocks</span>
+      <span style="--dot: var(--c-appt)">Appointments</span>
+      <span style="--dot: var(--c-block)">Blocks</span>
+      <span style="--dot: var(--c-task)">Tasks</span>
     </div>
   </header>
   <div class="dow"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>
@@ -64,7 +65,9 @@
 const TZ = "America/Chicago";
 const NIGHT_START = 23, NIGHT_END = 6;
 const MAX_PER_DAY = 4;
-const COLORS = { "7": "var(--c7)", "5": "var(--c5)", "3": "var(--c3)" };
+// Google colorId -> type (Grape 3 = block, Sage 2 = appointment, Graphite 8 = task; 7/5 = pre-Nov-10 colors)
+const KIND = { "3": "block", "2": "appt", "8": "task", "7": "block", "5": "appt" };
+const COLORS = { block: "var(--c-block)", appt: "var(--c-appt)", task: "var(--c-task)" };
 
 function el(tag, cls, text) {
   const e = document.createElement(tag);
@@ -101,10 +104,10 @@ function render(data) {
       if (iso < data.today) cell.classList.add("past");
       cell.append(el("div", "num", String(d)));
       // Appointments first so they never get cut off by routine blocks/tasks.
-      const evs = (data.events[iso] || []).slice().sort((a, b) => (b.color === "5") - (a.color === "5"));
+      const evs = (data.events[iso] || []).slice().sort((a, b) => (KIND[b.color] === "appt") - (KIND[a.color] === "appt"));
       evs.slice(0, perDay).forEach(ev => {
-        const row = el("div", "ev" + (ev.all_day ? " all" : "") + (ev.color === "5" ? " appt" : ""));
-        const col = COLORS[ev.color] || "var(--c0)";
+        const row = el("div", "ev" + (ev.all_day ? " all" : "") + (KIND[ev.color] === "appt" ? " appt" : ""));
+        const col = COLORS[KIND[ev.color]] || "var(--c0)";
         row.style.setProperty("--col", col);
         const dot = el("span", "dot"); dot.style.background = col;
         row.append(dot);
