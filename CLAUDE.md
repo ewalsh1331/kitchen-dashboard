@@ -21,7 +21,7 @@ Run every command from `~/kitchen-dashboard`. Python is `.venv/bin/python`.
 | Change | `tools/gcal.py update ID [--title] [--start --end] [--location] [--description] [--append-description]` |
 | Delete | `tools/gcal.py delete ID` |
 | Weekly Review list | `tools/gcal.py pending list` / `pending add "text"` / `pending remove "text"` |
-| Fitness Data sheet | `tools/fitness.py tabs` / `tools/fitness.py read TAB --last 14` (read-only) |
+| Fitness Data sheet | `tools/fitness.py tabs` / `tools/fitness.py read TAB --last 14` / `stats TAB "Column" … --days 60` (mean, percentiles; read-only) |
 | Workout log (OneDrive xlsx) | `tools/workout.py pull` / `day "Pull #1" [--block N]` (template + last session) / `show TAB [--last N] [--find TEXT]` / `push` |
 
 All tool output is JSON. Run `--help` on any tool for details.
