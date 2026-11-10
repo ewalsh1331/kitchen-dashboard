@@ -8,7 +8,12 @@
   /* Layout: header (clock | weather) / full-width day bar / schedule rows | slim to-do checklist */
   :root {
     --bg: #0f1115; --panel: #181b22; --line: #2a2f3a; --text: #f2f3f5; --muted: #8b919c; --soft: #c3c7cf;
-    --block: #2bb3ad; --appt: #f5c84c; --other: #6b8cff; --now: #ff5a5f; --rain: #5aa9ff; --bad: #f2555a;
+    /* Event colors: time blocks (work) = rich plum, appointments = sage, anything else = slate */
+    --block: #7a3f66; --block-lo: #5e2e4f; --block-text: #c993b8;
+    --appt: #6f9d7e; --appt-lo: #5b866a; --appt-text: #9cc7a9;
+    --other: #5d7fb0; --other-lo: #4c6a98; --other-text: #91aed8;
+    --cell: #191c23; --cell-edge: #242833;
+    --now: #ff5a5f; --rain: #5aa9ff; --bad: #f2555a;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
@@ -39,19 +44,28 @@
   #allday { display: flex; gap: 0.8vw; flex-wrap: wrap; }
   #allday:not(:empty) { margin-bottom: 1.4vh; }
   .chip { font-size: 1.5vw; padding: 0.6vh 1vw; border-radius: 0.6vw; background: var(--panel); border-left: 0.4vw solid var(--other); }
-  .bar-wrap { position: relative; margin-top: 3vh; }
-  .bar { position: relative; height: 9vh; background: var(--panel); border-radius: 1vw; overflow: hidden; }
-  .seg { position: absolute; display: flex; align-items: center; padding: 0 1vw; font-size: 1.6vw; font-weight: 600;
-         color: #0f1115; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .seg.block { background: var(--block); } .seg.appointment { background: var(--appt); } .seg.other { background: var(--other); }
-  .seg.past { opacity: 0.45; }
+  /* One block per hour. Names sit above their first block; hour labels sit under their block.
+     Blocks, names and hour labels all share the same left edge (block edge + GAP). */
+  .bar-wrap { position: relative; margin-top: 8.5vh; }
+  .bar { position: relative; height: 8vh; }
+  .hc { position: absolute; top: 0; bottom: 0; border-radius: 0.55vw; overflow: hidden;
+        background: var(--cell); box-shadow: inset 0 0 0 1px var(--cell-edge); }
+  .hc.block { background: linear-gradient(var(--block), var(--block-lo)); box-shadow: inset 0 1px 0 rgba(255,255,255,.14); }
+  .hc.appointment { background: linear-gradient(var(--appt), var(--appt-lo)); box-shadow: inset 0 1px 0 rgba(255,255,255,.18); }
+  .hc.other { background: linear-gradient(var(--other), var(--other-lo)); box-shadow: inset 0 1px 0 rgba(255,255,255,.16); }
+  .hc .shade { position: absolute; top: 0; bottom: 0; left: 0; background: rgba(12,14,18,.62); }
+  .hlbl { position: absolute; bottom: calc(100% + 1.2vh); white-space: nowrap; line-height: 1.15; overflow: hidden; text-overflow: ellipsis; }
+  .hlbl .n { font-size: 2vw; font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
+  .hlbl .w { font-size: 1.35vw; color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums;
+             overflow: hidden; text-overflow: ellipsis; }
+  .hlbl.block .n { color: var(--block-text); } .hlbl.appointment .n { color: var(--appt-text); } .hlbl.other .n { color: var(--other-text); }
+  .hlbl.past .n { color: var(--muted); }
   .ticks { position: relative; height: 4vh; }
-  .ticks span { position: absolute; top: 0.8vh; transform: translateX(-50%); font-size: 1.25vw; color: var(--muted); white-space: nowrap; }
-  .ticks span.first { transform: none; } .ticks span.last { transform: translateX(-100%); }
-  .nowmark { position: absolute; top: -4.5vh; bottom: 4vh; width: 0; border-left: 3px solid var(--now); z-index: 3; }
-  .pill { position: absolute; top: 0; left: 0; transform: translateX(-50%); background: var(--now); color: #fff;
-          font-weight: 700; font-size: 1.3vw; padding: 0.3vh 0.8vw; border-radius: 99px; white-space: nowrap;
-          font-variant-numeric: tabular-nums; }
+  .ticks span { position: absolute; top: 0.9vh; font-size: 1.25vw; color: var(--muted); white-space: nowrap; }
+  .ticks span.last { transform: translateX(-100%); }
+  .nowmark { position: absolute; top: 0.4vh; bottom: 4vh; width: 0; border-left: 3px solid var(--now); z-index: 3; }
+  .nowmark::before { content: ""; position: absolute; left: -0.95vw; top: -1.6vh; width: 0; height: 0;
+     border-left: 0.95vw solid transparent; border-right: 0.95vw solid transparent; border-top: 1.5vh solid var(--now); }
 
   /* Schedule + to-do */
   main { display: grid; grid-template-columns: 2.6fr 1fr; gap: 3vw; min-height: 0; flex: 1; }
@@ -83,7 +97,7 @@
   <section>
     <h2>Today</h2>
     <div id="allday"></div>
-    <div class="bar-wrap"><div id="bar" class="bar"></div><div id="ticks" class="ticks"></div><div id="nowmark" class="nowmark"><span class="pill" id="pill"></span></div></div>
+    <div class="bar-wrap"><div id="bar" class="bar"></div><div id="ticks" class="ticks"></div><div id="nowmark" class="nowmark"></div></div>
   </section>
   <main>
     <section class="col"><h2>Schedule</h2><div id="schedule"></div></section>
@@ -110,7 +124,9 @@ const dur = ms => { const m = Math.max(1, Math.round(ms / 60000)), h = Math.floo
 // "Golf - X-Golf American Family Field" with that location -> "Golf", venue on the second line
 const split = e => { const [a, ...b] = e.title.split(" - "); const rest = b.join(" - ");
   return rest && (!e.location || rest === e.location) ? [a, rest] : [e.title, e.location]; };
-const KIND_COLOR = { block: "var(--block)", appointment: "var(--appt)", other: "var(--other)" };
+const KIND_COLOR = { block: "linear-gradient(var(--block), var(--block-lo))",
+                     appointment: "linear-gradient(var(--appt), var(--appt-lo))",
+                     other: "linear-gradient(var(--other), var(--other-lo))" };
 const $ = id => document.getElementById(id);
 let data = null;
 
@@ -168,37 +184,73 @@ function renderDay() {
   for (const e of evs) { lo = Math.min(lo, Math.floor(hoursOf(e.s))); hi = Math.max(hi, Math.ceil(hoursOf(e.e) || 24)); }
   lo = Math.max(0, Math.min(lo, Math.floor(nowH))); hi = Math.min(24, Math.max(hi, Math.ceil(nowH + 0.01)));
   const x = h => ((h - lo) / (hi - lo)) * 100;
+  const GAP = 2;                                            // px between hour blocks, half on each side
+  const edge = h => `calc(${x(h)}% + ${GAP}px)`;            // left edge shared by a block, its name and its hour label
+  const startH = e => Math.max(lo, hoursOf(e.s)), endH = e => Math.min(hi, hoursOf(e.e) || 24);
+  const RANK = { appointment: 3, other: 2, block: 1 };      // when events share an hour, the appointment colors it
 
-  // Segments; overlapping events share the bar's height in lanes.
-  const lanes = [];
-  for (const e of evs) { let i = lanes.findIndex(end => end <= e.s); if (i < 0) { i = lanes.length; lanes.push(0); } lanes[i] = e.e; e.lane = i; }
-  const n = Math.max(1, lanes.length), bar = $("bar");
+  const bar = $("bar");
   bar.replaceChildren();
-  for (const e of evs) {
-    const left = x(Math.max(lo, hoursOf(e.s))), right = x(Math.min(hi, hoursOf(e.e) || 24));
-    const seg = el("div", `seg ${e.kind} ${e.e <= now ? "past" : ""}`, right - left >= 6 ? split(e)[0] : "");
-    Object.assign(seg.style, { left: left + "%", width: right - left + "%", top: (e.lane / n) * 100 + "%", height: 100 / n + "%" });
-    bar.append(seg);
+  for (let h = lo; h < hi; h++) {
+    // An hour takes the color of the highest-ranked event covering at least 15 minutes of it.
+    const cover = evs.filter(e => Math.min(endH(e), h + 1) - Math.max(startH(e), h) >= 0.25)
+                     .sort((a, b) => RANK[b.kind] - RANK[a.kind])[0];
+    const c = el("div", "hc" + (cover ? " " + cover.kind : ""));
+    Object.assign(c.style, { left: edge(h), width: `calc(${x(h + 1) - x(h)}% - ${2 * GAP}px)` });
+    const done = Math.max(0, Math.min(1, nowH - h));        // dim exactly up to now
+    if (done > 0) { const s = el("div", "shade"); s.style.width = done * 100 + "%"; c.append(s); }
+    bar.append(c);
   }
 
-  // Hour labels (the now-line stops at the bar, so none are covered).
+  // Names above the block where each event starts. If a name would run into the previous one,
+  // it moves up a row (up to 3 rows); only if every row is taken does it get trimmed with "…".
+  const labels = evs.filter(e => endH(e) > lo && startH(e) < hi);
+  const placed = [];                                          // {el, row, left, right}
+  for (const e of labels) {
+    const h = Math.floor(startH(e));
+    const l = el("div", "hlbl " + e.kind + (e.e <= now ? " past" : ""));
+    l.style.left = edge(h);
+    l.style.maxWidth = `calc(${100 - x(h)}% - ${GAP}px)`;
+    l.append(el("div", "n", split(e)[0]), el("div", "w", range(e.s, e.e)));
+    bar.append(l);
+    placed.push({ el: l });
+  }
+  const rowEnds = [], ROWS = 3, PAD = 16;
+  let rowH = 0, rowsUsed = 1;
+  for (const p of placed) {
+    const r = p.el.getBoundingClientRect();
+    rowH = Math.max(rowH, r.height);
+    let row = rowEnds.findIndex(end => r.left >= end + PAD);
+    if (row < 0 && rowEnds.length < ROWS) row = rowEnds.length;
+    if (row < 0) {                                            // all rows busy: trim the name in the emptiest row
+      row = rowEnds.indexOf(Math.min(...rowEnds));
+      const prev = placed.filter(q => q.row === row).pop();
+      if (prev) prev.el.style.maxWidth = Math.max(40, r.left - prev.left - PAD) + "px";
+    }
+    rowEnds[row] = r.right;
+    Object.assign(p, { row, left: r.left });
+    rowsUsed = Math.max(rowsUsed, row + 1);
+  }
+  const vh = window.innerHeight / 100;
+  for (const p of placed) p.el.style.bottom = `calc(100% + ${1.2 * vh + p.row * (rowH + 0.6 * vh)}px)`;
+  document.querySelector(".bar-wrap").style.marginTop = `${8.5 * vh + (rowsUsed - 1) * (rowH + 0.6 * vh)}px`;
+
+  // Hour labels, left-aligned under their block like the names above.
   const step = hi - lo > 16 ? 3 : 2, ticks = $("ticks");
   ticks.replaceChildren();
   for (let h = lo; h <= hi; h += step) {
-    const t = el("span", h === lo ? "first" : h === hi ? "last" : "", hl(h));
-    t.style.left = x(h) + "%";
+    const t = el("span", h === hi ? "last" : "", hl(h));
+    t.style.left = h === hi ? `calc(${x(h)}% - ${GAP}px)` : edge(h);
     ticks.append(t);
   }
   $("nowmark").style.left = x(nowH) + "%";
-  $("pill").textContent = fClock.format(now);
 
   const ad = $("allday"); ad.replaceChildren();
   for (const a of data.all_day || []) ad.append(el("div", "chip", a.title));
 
-  // Schedule rows: drop finished events when the day is busy, compact when still crowded.
-  let list = evs.length > MAX_ROWS ? evs.filter(e => e.e > now) : evs;
-  const hidden = list.length > MAX_ROWS + 1 ? list.length - (MAX_ROWS + 1) : 0;
-  if (hidden) list = list.slice(0, MAX_ROWS + 1);
+  // Schedule rows: drop finished events when the day is busy, compact when crowded,
+  // and show only as many rows as fit on screen, then "+ N more later".
+  const list = evs.length > MAX_ROWS ? evs.filter(e => e.e > now) : evs;
   const box = $("schedule");
   box.replaceChildren();
   box.classList.toggle("dense", list.length > 3);
@@ -213,7 +265,15 @@ function renderDay() {
       el("div", "st", e.e <= now ? "Done" : e.s <= now ? `Now · ${dur(e.e - now)} left` : `in ${dur(e.s - now)}`), m);
     box.append(row);
   }
-  if (hidden) box.append(el("div", "more", `+ ${hidden} more later`));
+  const rows = [...box.querySelectorAll(".row")];
+  const bottom = window.innerHeight * 0.98;                    // keep a small bottom margin
+  const keep = rows.findIndex((r, i) => r.getBoundingClientRect().bottom >
+                 bottom - (i < rows.length - 1 ? 4.5 * window.innerHeight / 100 : 0));   // room for "+ N more"
+  if (keep >= 0) {
+    const cut = Math.max(1, keep);
+    rows.slice(cut).forEach(r => r.remove());
+    box.append(el("div", "more", `+ ${rows.length - cut} more later`));
+  }
 }
 
 function renderTodo() {
