@@ -48,7 +48,7 @@
   .ticks { position: relative; height: 4vh; }
   .ticks span { position: absolute; top: 0.8vh; transform: translateX(-50%); font-size: 1.25vw; color: var(--muted); white-space: nowrap; }
   .ticks span.first { transform: none; } .ticks span.last { transform: translateX(-100%); }
-  .nowmark { position: absolute; top: -4.5vh; bottom: 0; width: 0; border-left: 3px solid var(--now); z-index: 3; }
+  .nowmark { position: absolute; top: -4.5vh; bottom: 4vh; width: 0; border-left: 3px solid var(--now); z-index: 3; }
   .pill { position: absolute; top: 0; left: 0; transform: translateX(-50%); background: var(--now); color: #fff;
           font-weight: 700; font-size: 1.3vw; padding: 0.3vh 0.8vw; border-radius: 99px; white-space: nowrap;
           font-variant-numeric: tabular-nums; }
@@ -181,11 +181,10 @@ function renderDay() {
     bar.append(seg);
   }
 
-  // Hour labels, skipping the one hidden behind the "now" pill.
+  // Hour labels (the now-line stops at the bar, so none are covered).
   const step = hi - lo > 16 ? 3 : 2, ticks = $("ticks");
   ticks.replaceChildren();
   for (let h = lo; h <= hi; h += step) {
-    if (Math.abs(h - nowH) < 0.8) continue;
     const t = el("span", h === lo ? "first" : h === hi ? "last" : "", hl(h));
     t.style.left = x(h) + "%";
     ticks.append(t);
