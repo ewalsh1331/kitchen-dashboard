@@ -26,11 +26,25 @@
       "Bash(.venv/bin/python tools/workout.py clear-row:*)",
       "Bash(voice/.venv/bin/python voice/assistant.py:*)",
       "Bash(voice/.venv/bin/python voice/wake_test.py:*)",
-      "Bash(bash deploy/refresh-screen.sh)"
+      "Bash(bash deploy/refresh-screen.sh)",
+      "Bash(bash deploy/screenshot.sh:*)",
+      "Bash(grep:*)",
+      "Bash(ls:*)",
+      "Bash(curl -s 127.0.0.1:8080/:*)",
+      "Bash(curl -s http://127.0.0.1:8080/:*)",
+      "Bash(curl -s localhost:8080/:*)",
+      "Bash(systemctl --user status:*)",
+      "Bash(systemctl --user list-timers:*)",
+      "Bash(systemctl status kitchen-dashboard:*)",
+      "Bash(journalctl --user:*)",
+      "Bash(journalctl -u kitchen-dashboard:*)"
     ],
     "deny": [
       "Read(./token.json)",
-      "Read(./client_secret.json)"
+      "Read(./client_secret.json)",
+      "Bash(grep * token.json*)",
+      "Bash(grep * client_secret.json*)",
+      "Bash(grep * .env*)"
     ]
   }
 }

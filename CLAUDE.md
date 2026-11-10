@@ -104,6 +104,13 @@ Reply with one line confirming where it went.
 - Backup: private GitHub repo `ewalsh1331/kitchen-dashboard` (deploy key `~/.ssh/kitchen_pi_deploy`). Every commit auto-pushes; a 2 AM timer auto-saves anything uncommitted (`deploy/autosave.sh`, log in `data/autosave.log`).
 - The screen is a regular (non-touch) HDMI monitor in the kitchen, viewed from across the room: big text, high contrast.
 
+## Running commands (keep permission prompts rare)
+
+- Run allowed commands **one per Bash call**, exactly as listed in `.claude/settings.json`. No `&&`/`;` chains, pipes or `sleep` tricks around them: each part of a chain is checked separately, so one unlisted part prompts Eric.
+- Screenshots: `bash deploy/screenshot.sh screen [OUT] [--wait S]` (kitchen monitor) or `page FILE.html OUT` (local mockups). Not ad-hoc `grim`/`chromium`.
+- Prefer a tool subcommand over ad-hoc Python or text pipelines. If an action will recur, add it to a tool (like `workout.py log`) and allow it.
+- Prompts are expected, and fine, for: OneDrive uploads (`rclone`), anything touching keys or `.env`, one-off scripts that change Google data, deletions, git commits.
+
 ## General
 
 - Concise. Tables and lists over paragraphs.
