@@ -48,6 +48,9 @@
 
   .chart { position: relative; height: 15vh; margin-top: auto; padding-right: 4.6vw; padding-left: 2.6vw; }
   .chart svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .chart .plot { position: relative; width: 100%; height: 100%; }
+  .chart .dot { position: absolute; width: 0.75vw; height: 0.75vw; border-radius: 50%; transform: translate(-50%, -50%);
+                box-shadow: 0 0 0 0.2vw var(--panel); }
   .lv { position: absolute; right: 0; transform: translateY(-50%); font-size: 1.05vw; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
   .lv.band { font-weight: 600; }
   .ax { position: absolute; left: 0; transform: translateY(-50%); font-size: 1vw; color: var(--faint); font-variant-numeric: tabular-nums; }
@@ -114,7 +117,7 @@ function chart(vals, o) {
   const Y = y => H - ((Math.max(lo, Math.min(hi, y)) - lo) / (hi - lo)) * H, pct = y => (Y(y) / H) * 100;
   let svg = `<line x1="0" x2="${W}" y1="0" y2="0" stroke="#2a2f3a" vector-effect="non-scaling-stroke"/>` +
             `<line x1="0" x2="${W}" y1="${H}" y2="${H}" stroke="#2a2f3a" vector-effect="non-scaling-stroke"/>`;
-  let lab = `<span class="ax" style="top:0%">${o.hi}</span><span class="ax" style="top:100%">${o.lo}</span>`;
+  let lab = `<span class="ax" style="top:0%">${o.hi}</span><span class="ax" style="top:100%">${o.lo}</span>`, dot = "";
   if (o.band && o.band[0] != null && o.band[1] != null) {
     svg += `<rect x="0" y="${Y(o.band[1])}" width="${W}" height="${Y(o.band[0]) - Y(o.band[1])}" fill="${o.color}" opacity="0.13"/>`;
     lab += `<span class="lv band" style="top:${(pct(o.band[1]) + pct(o.band[0])) / 2}%;color:${o.color}">${o.band[2]}</span>`;
@@ -134,10 +137,11 @@ function chart(vals, o) {
       arr.forEach((y, i) => { if (y == null) { pen = false; return; } d += (pen ? "L" : "M") + X(i).toFixed(1) + " " + Y(y).toFixed(1); pen = true; }); return d; };
     if (o.second) svg += `<path d="${path(o.second)}" fill="none" stroke="${o.color}" stroke-width="2" stroke-dasharray="5 5" opacity="0.6" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>`;
     svg += `<path d="${path(vals)}" fill="none" stroke="${o.color}" stroke-width="2.4" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>`;
+    // Latest-value dot as HTML on top of the plot: the SVG is stretched to fit, which would squash a circle into an oval.
     const last = vals.map((v, i) => v == null ? -1 : i).filter(i => i >= 0).pop();
-    if (last != null) svg += `<circle cx="${X(last)}" cy="${Y(vals[last])}" r="4" fill="${o.color}"/>`;
+    if (last != null) dot = `<span class="dot" style="left:${X(last) / W * 100}%;top:${pct(vals[last])}%;background:${o.color}"></span>`;
   }
-  return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${svg}</svg>${lab}</div>`;
+  return `<div class="chart"><div class="plot"><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${svg}</svg>${dot}</div>${lab}</div>`;
 }
 
 function render(D) {
