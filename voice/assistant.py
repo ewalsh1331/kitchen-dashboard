@@ -17,6 +17,7 @@ Settings via environment variables (or voice/voice.env):
   VOICE_MIC=plughw:CARD=Headset,DEV=0   ALSA capture device (default: "default")
   VOICE_SPK=plughw:CARD=Headset,DEV=0   ALSA playback device (default: "default")
   VOICE_WAKE_THRESHOLD=0.5              higher = fewer false triggers
+  VOICE_TTS=en_US-lessac-medium         Piper voice (a .onnx in voice/models/piper)
 """
 import json
 import math
@@ -47,6 +48,7 @@ if env_file.exists():
 MIC = os.environ.get("VOICE_MIC", "default")
 SPK = os.environ.get("VOICE_SPK", "default")
 WAKE_THRESHOLD = float(os.environ.get("VOICE_WAKE_THRESHOLD", "0.5"))
+TTS_VOICE = os.environ.get("VOICE_TTS", "en_US-lessac-medium")  # file name in models/piper
 CLAUDE = os.path.expanduser("~/.local/bin/claude")
 FOLLOWUP_SECONDS = 120  # a reply within this window continues the same conversation
 
@@ -92,7 +94,7 @@ def tts_to_wav(text, path):
     global _voice
     from piper import PiperVoice
     if _voice is None:
-        _voice = PiperVoice.load(str(MODELS / "piper" / "en_US-lessac-medium.onnx"))
+        _voice = PiperVoice.load(str(MODELS / "piper" / f"{TTS_VOICE}.onnx"))
     with wave.open(str(path), "wb") as wf:
         _voice.synthesize_wav(text, wf)
 
