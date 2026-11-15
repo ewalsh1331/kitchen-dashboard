@@ -66,8 +66,8 @@ Reply with one line confirming where it went.
 ## Recovery & fitness data (Fitness Data sheet)
 
 - Tabs: Garmin, Oura, Activities, Oura Workouts, Golf Rounds, Golf Holes, Golf Shots.
-- **Always label the source (Garmin vs Oura)** for HRV, sleep, resting HR and readiness. Never blend them.
-- Sleep and overnight HRV in **both** tabs are dated by **wake-up day** (row D = the night you woke from on D, same as the apps). Both tabs were converted to this on 2026-11-05; before that, Garmin used the bed date. Steps, HR and stress are calendar days. Garmin activities use the actual calendar day. Oura is the only source for steps.
+- **Always label the source (Garmin vs Oura)** for HRV, sleep, resting HR, readiness and steps. Never blend them.
+- Sleep and overnight HRV in **both** tabs are dated by **wake-up day** (row D = the night you woke from on D, same as the apps). Both tabs were converted to this on 2026-11-05; before that, Garmin used the bed date. Steps, HR and stress are calendar days. Garmin activities use the actual calendar day. Both tabs have steps (counts differ); the Health screen shows Oura's.
 - The sheet is filled daily at 8 AM by `oura_to_sheets.py` / `garmin_to_sheets.py` on Eric's PC (`OneDrive\Documents\Fitness Data Connect\files`); each run re-checks the last 14 days. Old versions are in `old versions/`.
 - Look at **7–14 days of trend**, not just today. Note weekday vs weekend patterns (remote Mon/Fri vs office Tue–Thu).
 - Use the data as context, not as a directive. Eric pushes through normal fatigue fine: follow his lead on intensity, and don't proactively push rest. General observations are fine; no medical or diagnostic claims.
