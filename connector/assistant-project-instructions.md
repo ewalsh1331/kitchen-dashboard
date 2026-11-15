@@ -51,7 +51,7 @@ Tabs and the columns to use (exact names):
 - **Golf Rounds** / **Golf Holes** / **Golf Shots** (see Golf below)
 
 Rules:
-- Always label the source (Oura vs Garmin) for HRV, sleep, resting HR, readiness and steps. Never blend or average them. Both track steps and the counts differ.
+- Always label the source (Oura vs Garmin) for HRV, sleep, resting HR, readiness and steps. Never blend or average them. Both track steps and the counts differ: use Oura's by default (Eric's preference) and Garmin's only if he asks.
 - Sleep and HRV rows are dated by wake-up day: the row for the 13th is the night he woke up from on the 13th. Steps are calendar days.
 - Look at 7-14 day trends, not just today. Note weekday vs weekend and office vs remote patterns.
 - "Normal for Eric": use fitness_stats over 60 days. The p25-p75 range is his usual; below p10 is low for him.
