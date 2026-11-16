@@ -169,11 +169,19 @@ def golf(rounds, holes, today):
     strokes = int(num(last["Strokes"]))
     diffs = [int(num(h["Strokes"])) - int(num(h["Par"])) for h in hs if num(h.get("Strokes")) and num(h.get("Par"))]
     fw = [h for h in hs if (num(h.get("Par")) or 0) >= 4]
+    # Greens in regulation: on the green in par-2 strokes or fewer, i.e. strokes - putts <= par - 2.
+    # Needs putts on every played hole (old rounds have 0 putts everywhere = not entered).
+    played = [h for h in hs if num(h.get("Strokes")) and num(h.get("Par"))]
+    putts_known = played and all(h.get("Putts") not in (None, "") for h in played) \
+        and sum(num(h["Putts"]) or 0 for h in played) > 0
+    gir = sum(1 for h in played if num(h["Strokes"]) - (num(h["Putts"]) or 0) <= num(h["Par"]) - 2) \
+        if putts_known else None
     card = {
         "date": day.isoformat(), "course": last.get("Coursename", ""), "holes": n,
         "strokes": strokes, "to_par": strokes - par if par else None,
-        "putts": int(sum(num(h.get("Putts")) or 0 for h in hs)) if hs else None,
+        "putts": int(sum(num(h.get("Putts")) or 0 for h in hs)) if putts_known else None,
         "fairways": f"{sum(1 for h in fw if h.get('Fairway Shot Outcome') == 'HIT')}/{len(fw)}" if fw else None,
+        "gir": f"{gir}/{len(played)}" if gir is not None else None,
         "penalties": int(sum(num(h.get("Penalties")) or 0 for h in hs)) if hs else None,
         "birdies": sum(1 for d in diffs if d <= -1), "pars": sum(1 for d in diffs if d == 0),
         "bogeys": sum(1 for d in diffs if d == 1), "doubles": sum(1 for d in diffs if d >= 2),

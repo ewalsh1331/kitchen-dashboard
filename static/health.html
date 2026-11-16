@@ -83,7 +83,7 @@
   .golf .score { display: flex; align-items: baseline; gap: 1vw; }
   .golf .score .v { font-size: 4vw; font-weight: 300; line-height: 1; }
   .golf .score .p { font-size: 2.2vw; color: var(--golf-text); font-weight: 600; }
-  .golf .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1vh 1vw; }
+  .golf .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1vh 1vw; }
   .golf .stats div { font-size: 1.15vw; color: var(--muted); }
   .golf .stats b { display: block; font-size: 1.8vw; color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
   .golf .recent { font-size: 1.3vw; color: var(--muted); }
@@ -198,8 +198,8 @@ function render(D) {
       <div class="k">Golf · ${when}</div>
       <div class="where">${g.course} · ${g.holes} holes</div>
       <div class="score"><span class="v">${g.strokes}</span><span class="p">${tp}</span></div>
-      <div class="stats">${stat(g.putts, "putts")}${stat(g.fairways, "fairways")}${stat(g.penalties, g.penalties === 1 ? "penalty" : "penalties")}
-        ${stat(g.birdies, g.birdies === 1 ? "birdie" : "birdies")}${stat(g.pars, "pars")}${stat(g.bogeys + g.doubles, "bogeys or worse")}</div>
+      <div class="stats">${stat(g.putts, "putts")}${stat(g.gir, "greens in reg")}${stat(g.fairways, "fairways")}${stat(g.penalties, g.penalties === 1 ? "penalty" : "penalties")}
+        ${stat(g.birdies, g.birdies === 1 ? "birdie" : "birdies")}${stat(g.pars, "pars")}${stat(g.bogeys, g.bogeys === 1 ? "bogey" : "bogeys")}${stat(g.doubles, "double+")}</div>
       <div class="recent">Recent rounds: ${D.recent_rounds.map(r => `<b>${r.strokes}</b> ${fmt({ month: "short", day: "numeric" }).format(dayName(r.date))}`).join(" · ")}</div>`;
   }
 }
