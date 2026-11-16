@@ -174,6 +174,19 @@ def cmd_day(a):
     }, indent=2, default=str))
 
 
+def chicago_today() -> dt.date:
+    from zoneinfo import ZoneInfo
+    return dt.datetime.now(ZoneInfo(CONFIG.get("timezone", "America/Chicago"))).date()
+
+
+def _check_not_future(date_text: str):
+    """Refuse a session date after today in Chicago (a UTC date after 6-7 PM is already tomorrow)."""
+    d = dt.date.fromisoformat(date_text)
+    today = chicago_today()
+    if d > today:
+        sys.exit(f"Date {d} is after today in Chicago ({today}). Use the day the workout happened.")
+
+
 def cmd_log(a):
     """Append one session to Workout Log, copying the formatting of the previous session.
 
@@ -187,6 +200,7 @@ def cmd_log(a):
     from openpyxl.formula.translate import Translator
     if not LOCAL.exists() or not STATE.exists():
         sys.exit("Run 'pull' first.")
+    _check_not_future(a.date)
     rows = json.loads(a.rows)
     if not isinstance(rows, list) or not rows or not all(isinstance(r, dict) and r.get("Exercise") for r in rows):
         sys.exit("--rows must be a non-empty JSON list of objects, each with an 'Exercise'.")
@@ -306,6 +320,32 @@ def cmd_fill_date(a):
     print(json.dumps({"filled_rows": filled, "already_had_date": skipped, "next": "push to upload"}, indent=2))
 
 
+def cmd_set_date(a):
+    """Change the Date on Workout Log rows FIRST..LAST, only if every non-blank row in the
+    range is the --day session currently dated --from. Fixes a session logged on the wrong day."""
+    from openpyxl import load_workbook
+    if not LOCAL.exists() or not STATE.exists():
+        sys.exit("Run 'pull' first.")
+    first, last = (int(x) for x in a.rows.split("-"))
+    old = dt.datetime.strptime(a.from_date, "%Y-%m-%d")
+    new = dt.datetime.strptime(a.date, "%Y-%m-%d")
+    wb = load_workbook(LOCAL)
+    ws = wb["Workout Log"]
+    head = [c.value for c in ws[1]]
+    dcol, daycol = head.index("Date") + 1, head.index("Day") + 1
+    rows = [r for r in range(first, last + 1)
+            if any(ws.cell(r, c).value is not None for c in range(1, ws.max_column + 1))]
+    bad = [r for r in rows if ws.cell(r, dcol).value != old or ws.cell(r, daycol).value != a.day]
+    if not rows or bad:
+        sys.exit(f"Rows {bad or 'none'} aren't '{a.day}' dated {a.from_date}. Nothing changed.")
+    for r in rows:
+        ws.cell(r, dcol).value = new  # keeps the cell's existing date format
+    wb.calculation.fullCalcOnLoad = True
+    wb.save(LOCAL)
+    print(json.dumps({"changed_rows": rows, "from": a.from_date, "to": a.date, "day": a.day,
+                      "next": "push to upload"}, indent=2))
+
+
 def cmd_clear_row(a):
     """Clear the values (and links) in one row, only if column A matches --expect."""
     from openpyxl import load_workbook
@@ -346,6 +386,10 @@ def main():
     tr.set_defaults(fn=cmd_track); tr.add_argument("exercises", nargs="+")
     fd = sub.add_parser("fill-date", help="fill blank Date cells in Workout Log rows, e.g. --rows 2-8")
     fd.set_defaults(fn=cmd_fill_date); fd.add_argument("--rows", required=True); fd.add_argument("--date", required=True)
+    sd = sub.add_parser("set-date", help='move a session to another date, e.g. --rows 88-94 --from 2026-11-15 --date 2026-11-14 --day "Legs #2"')
+    sd.set_defaults(fn=cmd_set_date); sd.add_argument("--rows", required=True)
+    sd.add_argument("--from", dest="from_date", required=True); sd.add_argument("--date", required=True)
+    sd.add_argument("--day", required=True)
     cr = sub.add_parser("clear-row", help="clear one row's values if column A matches --expect")
     cr.set_defaults(fn=cmd_clear_row); cr.add_argument("tab"); cr.add_argument("row", type=int)
     cr.add_argument("--expect", required=True)

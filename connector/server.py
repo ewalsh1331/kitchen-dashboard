@@ -15,12 +15,14 @@ Safety:
 
 Run:  .venv/bin/python connector/server.py      (listens on 127.0.0.1:8090)
 """
+import datetime as dt
 import json
 import secrets
 import subprocess
 import sys
 import time
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
@@ -32,6 +34,7 @@ ENV = HERE / ".env"
 LOG = BASE / "data" / "connector.log"
 PORT = 8090
 CODE_SECONDS = 120
+TZ = ZoneInfo("America/Chicago")
 
 
 def _secret() -> str:
@@ -273,12 +276,21 @@ def workout_show(tab: str = "Workout Log", last: int = 15, find: str = "") -> ob
 
 
 @mcp.tool()
-def workout_log_request(date: str, week: str, day: str, rows: list[dict]) -> object:
-    """Step 1 of logging a workout. date YYYY-MM-DD, week like 'Week 3', day like 'Push #2'.
+def workout_log_request(week: str, day: str, rows: list[dict], date: str = "") -> object:
+    """Step 1 of logging a workout. date YYYY-MM-DD = the day the workout happened, in Chicago
+    time (leave empty for today in Chicago). week like 'Week 3', day like 'Push #2'.
     rows: one object per exercise, keyed by Workout Log column names (see workout_show).
-    Nothing is written. Read the rows back and ask Eric for a yes."""
+    Nothing is written. Read the rows back (including the date) and ask Eric for a yes."""
     if not rows:
         return {"error": "No rows given."}
+    today = dt.datetime.now(TZ).date()
+    try:
+        d = dt.date.fromisoformat(date) if date else today
+    except ValueError:
+        return {"error": "date must be YYYY-MM-DD"}
+    if d > today:
+        return {"error": f"{d} is after today in Chicago ({today}). Use the day the workout happened."}
+    date = d.isoformat()
     code = new_code("workout", date=date, week=week, day=day, rows=rows)
     return {"would_log": {"date": date, "week": week, "day": day, "rows": rows},
             "confirm_code": code,
