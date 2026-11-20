@@ -111,7 +111,8 @@ Reply with one line confirming where it went.
 - Run allowed commands **one per Bash call**, exactly as listed in `.claude/settings.json`. No `&&`/`;` chains, pipes or `sleep` tricks around them: each part of a chain is checked separately, so one unlisted part prompts Eric.
 - Screenshots: `bash deploy/screenshot.sh screen [OUT] [--wait S]` (kitchen monitor) or `page FILE.html OUT` (local mockups). Not ad-hoc `grim`/`chromium`.
 - Prefer a tool subcommand over ad-hoc Python or text pipelines. If an action will recur, add it to a tool (like `workout.py log`) and allow it.
-- Prompts are expected, and fine, for: OneDrive uploads (`rclone`), anything touching keys or `.env`, one-off scripts that change Google data, deletions, git commits.
+- Prompts are expected, and fine, for: OneDrive uploads (`rclone`), anything touching keys or `.env`, one-off scripts that change Google data, file deletions, git commits.
+- `gcal.py delete` is allowed (no prompt) since 2026-11-20, so the chat "yes" is the only check: always propose deletions and wait for it.
 
 ## General
 

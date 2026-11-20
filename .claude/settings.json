@@ -14,6 +14,7 @@
       "Bash(.venv/bin/python tools/workout.py find:*)",
       "Bash(.venv/bin/python tools/gcal.py create:*)",
       "Bash(.venv/bin/python tools/gcal.py update:*)",
+      "Bash(.venv/bin/python tools/gcal.py delete:*)",
       "Bash(.venv/bin/python tools/gcal.py pending add:*)",
       "Bash(.venv/bin/python tools/gcal.py pending remove:*)",
       "Bash(.venv/bin/python tools/gcal.py --help)",
