@@ -37,7 +37,7 @@
   .today .num { color: var(--bg); background: var(--accent); border-radius: 0.4vw;
     padding: 0 0.45vw; align-self: flex-start; }
   .ev { display: flex; align-items: baseline; gap: 0.4vw; font-size: 1.1vw; line-height: 1.25;
-    white-space: nowrap; overflow: hidden; }
+    white-space: nowrap; overflow: hidden; flex: none; }   /* flex: none = rows never get squashed into each other */
   .ev .dot { flex: none; width: 0.65vw; height: 0.65vw; border-radius: 50%; background: var(--c0);
     align-self: center; }
   .ev .t { color: var(--muted); flex: none; }
@@ -45,7 +45,7 @@
   .ev.all { background: color-mix(in srgb, var(--col) 22%, transparent); border-radius: 0.3vw;
     padding: 0 0.35vw; }
   .ev.all .dot { display: none; }
-  .more { font-size: 1vw; color: var(--muted); }
+  .more { font-size: 1vw; color: var(--muted); flex: none; }
   .error { color: var(--bad); font-size: 1.8vw; margin-top: 4vh; white-space: pre-wrap; }
 </style>
 </head>
@@ -92,9 +92,7 @@ function render(data) {
   }
   grid.style.display = "";
   document.getElementById("title").textContent = data.month;
-  const rows = data.weeks.length;
-  // Fewer rows → room for more events per cell.
-  const perDay = rows >= 6 ? MAX_PER_DAY - 1 : MAX_PER_DAY;
+  const cells = [];
   for (const week of data.weeks) {
     for (const iso of week) {
       const [y, m, d] = iso.split("-").map(Number);
@@ -103,21 +101,53 @@ function render(data) {
       if (iso === data.today) cell.classList.add("today");
       if (iso < data.today) cell.classList.add("past");
       cell.append(el("div", "num", String(d)));
-      // Appointments first so they never get cut off by routine blocks/tasks.
-      const evs = (data.events[iso] || []).slice().sort((a, b) => (KIND[b.color] === "appt") - (KIND[a.color] === "appt"));
-      evs.slice(0, perDay).forEach(ev => {
-        const row = el("div", "ev" + (ev.all_day ? " all" : "") + (KIND[ev.color] === "appt" ? " appt" : ""));
-        const col = COLORS[KIND[ev.color]] || "var(--c0)";
-        row.style.setProperty("--col", col);
-        const dot = el("span", "dot"); dot.style.background = col;
-        row.append(dot);
-        if (ev.time) row.append(el("span", "t", ev.time));
-        row.append(el("span", "name", ev.title));
-        cell.append(row);
-      });
-      if (evs.length > perDay) cell.append(el("div", "more", `+${evs.length - perDay} more`));
+      dayRows(data.events[iso] || [], false).forEach(r => cell.append(r));
       grid.append(cell);
+      cells.push([cell, data.events[iso] || []]);
     }
+  }
+  for (const [cell, events] of cells) {
+    if (overflows(cell)) {           // full day: put same-time tasks on one line, then trim
+      cell.querySelectorAll(".ev").forEach(r => r.remove());
+      dayRows(events, true).forEach(r => cell.append(r));
+      fit(cell);
+    }
+  }
+}
+const overflows = cell => cell.scrollHeight > cell.clientHeight + 1;
+
+// Order: all-day bars, then appointments, then the rest; same-time tasks share one line.
+const RANK = ev => ev.all_day ? 0 : KIND[ev.color] === "appt" ? 1 : 2;
+function dayRows(events, merge) {
+  const evs = events.slice().sort((a, b) => RANK(a) - RANK(b));  // stable: keeps time order within a rank
+  const merged = [];
+  for (const ev of evs) {
+    const prev = merged[merged.length - 1];
+    if (merge && prev && !ev.all_day && KIND[ev.color] === "task" && KIND[prev.color] === "task" && prev.time === ev.time) {
+      prev.title += " · " + ev.title;
+    } else merged.push({ ...ev });
+  }
+  return merged.map(ev => {
+    const row = el("div", "ev" + (ev.all_day ? " all" : "") + (KIND[ev.color] === "appt" ? " appt" : ""));
+    const col = COLORS[KIND[ev.color]] || "var(--c0)";
+    row.style.setProperty("--col", col);
+    const dot = el("span", "dot"); dot.style.background = col;
+    row.append(dot);
+    if (ev.time) row.append(el("span", "t", ev.time));
+    row.append(el("span", "name", ev.title));
+    return row;
+  });
+}
+
+// Show as many rows as actually fit in the cell; the rest become "+N more".
+function fit(cell) {
+  const rows = [...cell.querySelectorAll(".ev")];
+  let hidden = 0;
+  while (overflows(cell) && rows.length) {
+    rows.pop().remove(); hidden++;
+    let more = cell.querySelector(".more");
+    if (!more) { more = el("div", "more"); cell.append(more); }
+    more.textContent = `+${hidden} more`;
   }
 }
 
