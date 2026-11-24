@@ -9,6 +9,11 @@ data/
 *.key
 *_deploy
 *service_account*.json
+# Fitness sync (moved from the PC): Google service-account key, Garmin session, logs
+sync/*.json
+sync/.garminconnect/
+sync/*.log
+sync/*.txt
 
 # Voice assistant: models, recordings, logs stay local
 voice/models/

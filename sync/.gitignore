@@ -1,0 +1,5 @@
+# Never commit real credentials
+.env
+
+# Garmin Connect session cache (created automatically on first login)
+.garminconnect/
