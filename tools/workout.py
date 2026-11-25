@@ -346,6 +346,35 @@ def cmd_set_date(a):
                       "next": "push to upload"}, indent=2))
 
 
+def cmd_rename(a):
+    """Rename an exercise everywhere it appears by exact name: Workout Log 'Exercise' cells and
+    the Progress tab's column A (whose formulas key off that name)."""
+    from openpyxl import load_workbook
+    if not LOCAL.exists() or not STATE.exists():
+        sys.exit("Run 'pull' first.")
+    wb = load_workbook(LOCAL)
+    changed = {}
+    log = wb["Workout Log"]
+    ecol = [c.value for c in log[1]].index("Exercise") + 1
+    rows = [r for r in range(2, log.max_row + 1) if log.cell(r, ecol).value == a.old]
+    for r in rows:
+        log.cell(r, ecol).value = a.new
+    changed["Workout Log rows"] = rows
+    if "Progress" in wb.sheetnames:
+        prog = wb["Progress"]
+        prow = [r for r in range(2, prog.max_row + 1) if prog.cell(r, 1).value == a.old]
+        if prow and any(prog.cell(r, 1).value == a.new for r in range(2, prog.max_row + 1)):
+            sys.exit(f"'{a.new}' is already on the Progress tab; remove the duplicate by hand first. Nothing saved.")
+        for r in prow:
+            prog.cell(r, 1).value = a.new
+        changed["Progress rows"] = prow
+    if not any(changed.values()):
+        sys.exit(f"No exercise named {a.old!r}. Nothing changed.")
+    wb.calculation.fullCalcOnLoad = True
+    wb.save(LOCAL)
+    print(json.dumps({"renamed": a.old, "to": a.new, **changed, "next": "push to upload"}, indent=2))
+
+
 def cmd_clear_row(a):
     """Clear the values (and links) in one row, only if column A matches --expect."""
     from openpyxl import load_workbook
@@ -390,6 +419,8 @@ def main():
     sd.set_defaults(fn=cmd_set_date); sd.add_argument("--rows", required=True)
     sd.add_argument("--from", dest="from_date", required=True); sd.add_argument("--date", required=True)
     sd.add_argument("--day", required=True)
+    rn = sub.add_parser("rename", help='rename an exercise in Workout Log + Progress, e.g. rename "Old Name" "New Name"')
+    rn.set_defaults(fn=cmd_rename); rn.add_argument("old"); rn.add_argument("new")
     cr = sub.add_parser("clear-row", help="clear one row's values if column A matches --expect")
     cr.set_defaults(fn=cmd_clear_row); cr.add_argument("tab"); cr.add_argument("row", type=int)
     cr.add_argument("--expect", required=True)

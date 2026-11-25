@@ -80,6 +80,7 @@ Reply with one line confirming where it went.
 - **Always `tools/workout.py pull` first** (fresh download), then read with `tools/workout.py show TAB` or openpyxl on `data/Fitness_Program_Log.xlsx`.
 - To log: `tools/workout.py log --date YYYY-MM-DD --week "Week N" --day "..." --rows '[{...}]'` (rows keyed by Workout Log column names). It appends with the previous session's formatting and copies the Status formula. Check with `show "Workout Log" --last N --formulas`, then `tools/workout.py push`.
 - `--date` is the day the workout happened in Chicago time (log refuses future dates). Session on the wrong date? `tools/workout.py set-date --rows A-B --from OLD --date NEW --day "..."`, then push.
+- Rename an exercise everywhere (log + Progress): `tools/workout.py rename "Old" "New"`, then push.
 - New exercise not on the Progress tab yet? `tools/workout.py track "Name" ...` adds a row with the same formulas (then push).
 - Status and the Progress tab are formulas. After a save their cached values read as blank until Excel recalculates; that's expected.
 - Before pushing, show Eric the exact rows you'll add and wait for "yes".
